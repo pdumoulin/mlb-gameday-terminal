@@ -9,7 +9,7 @@ from teams import TEAMS
 
 # TODO - (feature) add CLI args (date, team, list nplays, autorefresh)
 
-# TODO - (feature) add header with teams, weather, stadium, time
+# TODO - (feature) add header with teams, weather, stadium, time, record
 
 # TODO - (feature) figure out how live data will look
 # current inning
@@ -49,6 +49,84 @@ def main():
     box_score = live_data['boxscore']
     table = line_score_table(line_score, box_score)
     print(table)
+
+    # TODO - possibly handle row mis-match with placeholder rows
+    home_batting = box_score_batting_table('home', box_score)
+    away_batting = box_score_batting_table('away', box_score)
+    batting_tables = merge_tables(away_batting, home_batting)
+    print(batting_tables)
+
+    # TODO - maybe merge pitching tables to botton of hitting table for teams
+    home_pitching = box_score_pitching_table('home', live_data)
+    away_pitching = box_score_pitching_table('away', live_data)
+    pitching_tables = merge_tables(away_pitching, home_pitching)
+    print(pitching_tables)
+
+
+def box_score_batting_table(team, box_score):
+    team_name = box_score['teams'][team]['team']['name']
+    players = box_score['teams'][team]['players']
+    lineup = [x for _, x in players.items() if 'battingOrder' in x]
+    sorted_lineup = sorted(lineup, key=lambda k: k['battingOrder'])
+
+    def display_order(batter):
+        batting_order = int(batter['battingOrder'])
+        if not batting_order % 100:
+            return int(batting_order / 100)
+        return ''
+
+    return tabulate(
+        [
+            [
+                display_order(x),
+                x['position']['abbreviation'],
+                x['person']['fullName'],
+                x['stats']['batting']['atBats'],
+                x['stats']['batting']['hits'],
+                x['stats']['batting']['runs'],
+                x['stats']['batting']['rbi'],
+                x['stats']['batting']['baseOnBalls'],
+                x['stats']['batting']['strikeOuts']
+            ]
+            for x in sorted_lineup
+        ],
+        headers=['', '', team_name, 'AB', 'H', 'R', 'RBI', 'BB', 'SO'],
+        tablefmt='fancy_grid'
+    )
+
+
+def box_score_pitching_table(team, live_data):
+    # parse live events to find pitchers in game order
+    plays = live_data['plays']['allPlays']
+    pitcher_ids = {
+        x['matchup']['pitcher']['id']: 1
+        for x in plays
+        if (
+            x['about']['isTopInning'] and team == 'home'
+            or
+            not x['about']['isTopInning'] and team == 'away'
+        )
+    }.keys()
+    pitchers = [
+        live_data['boxscore']['teams'][team]['players'][f'ID{x}']
+        for x in pitcher_ids
+    ]
+    return tabulate(
+        [
+            [
+                x['person']['fullName'],
+                x['stats']['pitching']['inningsPitched'],
+                x['stats']['pitching']['hits'],
+                x['stats']['pitching']['runs'],
+                x['stats']['pitching']['earnedRuns'],
+                x['stats']['pitching']['baseOnBalls'],
+                x['stats']['pitching']['strikeOuts']
+            ]
+            for x in pitchers
+        ],
+        headers=['', 'IP', 'H', 'R', 'ER', 'BB', 'SO'],
+        tablefmt='fancy_grid'
+    )
 
 
 def line_score_table(line_score, box_score):
