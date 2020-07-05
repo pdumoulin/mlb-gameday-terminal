@@ -1,25 +1,34 @@
 
+import argparse
+
 import requests
 
 from tabulate import tabulate
 
 from teams import TEAMS
 
-# TODO - (feature) add CLI args (date, team, list nplays, autorefresh)
+# TODO - add W/L markers for teams and pitchers if game is final
+
+# TODO - add auto refresh if game not finished
 
 # TODO - (feature) figure out how live data will look
 # current inning
 # at bat and pitching
 # count
 # bases
-# game status (don't refresh if final)
 
 
 def main():
 
     # cli args data
-    team_arg = 'mets'
-    date_arg = '2019-09-27'
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--team', required=True,
+                        help='team to find game for')
+    parser.add_argument('--date', required=True,
+                        help='YYYY-MM-DD date to find game for')
+    args = parser.parse_args()
+    team_arg = args.team
+    date_arg = args.date
 
     # find team id based on pre-fetched config data
     teams = [
@@ -70,7 +79,7 @@ def summary_table(game_details, table_format='simple'):
         return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
     format_time = f"{game_time['time']} {game_time['ampm']}"  # TODO - what timezone is this?  # noqa:E501
     format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
-    format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}"  # noqa:E501
+    format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else ''  # noqa:E501
 
     return tabulate(
         [
@@ -172,14 +181,14 @@ def line_score_table(game_details, table_format='fancy_grid'):
     line_score = live_data['linescore']
 
     home_team = box_score['teams']['home']['team']['name']
-    home_team_hits = line_score['teams']['home']['hits']
-    home_team_runs = line_score['teams']['home']['runs']
-    home_team_errors = line_score['teams']['home']['errors']
+    home_team_hits = line_score['teams']['home'].get('hits', 0)
+    home_team_runs = line_score['teams']['home'].get('runs', 0)
+    home_team_errors = line_score['teams']['home'].get('errors', 0)
 
     away_team = box_score['teams']['away']['team']['name']
-    away_team_hits = line_score['teams']['away']['hits']
-    away_team_runs = line_score['teams']['away']['runs']
-    away_team_errors = line_score['teams']['away']['errors']
+    away_team_hits = line_score['teams']['away'].get('hits', 0)
+    away_team_runs = line_score['teams']['away'].get('runs', 0)
+    away_team_errors = line_score['teams']['away'].get('errors', 0)
 
     inning_scores = line_score['innings']
     placeholders = ['-'] * (9 - len(inning_scores))
@@ -239,7 +248,7 @@ def find_game(day, team_id):
     }
     response = requests.get(url, params=params)
     data = response.json()
-    dates = data['dates']
+    dates = data.get('dates', [])
     if not dates:
         return None
     return dates[0]['games'][-1]
