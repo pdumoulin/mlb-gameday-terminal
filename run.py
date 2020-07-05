@@ -45,28 +45,38 @@ def main():
     # get details about game
     game_details = game_data(game['gamePk'])
     live_data = game_details['liveData']
-    line_score = live_data['linescore']
+
+    line_score = line_score_table(live_data)
+    box_score = box_score_table(live_data)
+
+    print(tabulate(
+        [
+            [line_score],
+            [box_score]
+        ],
+        tablefmt='plain',
+        stralign='center'
+    ))
+
+
+def box_score_table(live_data):
     box_score = live_data['boxscore']
-    table = line_score_table(line_score, box_score)
-    print(table)
-    print('')
-
-    # TODO - possibly handle row mis-match with placeholder rows
-    home_batting = box_score_batting_table('home', box_score)
-    away_batting = box_score_batting_table('away', box_score)
-    batting_tables = merge_tables(away_batting, home_batting, ' | ')
-    print(batting_tables)
-    print('')
-
-    # TODO - maybe merge pitching tables to botton of hitting table for teams
-    home_pitching = box_score_pitching_table('home', live_data)
-    away_pitching = box_score_pitching_table('away', live_data)
-    pitching_tables = merge_tables(away_pitching, home_pitching, ' | ')
-    print(pitching_tables)
+    return tabulate(
+        [
+            [
+                box_score_batting_table('away', box_score),
+                box_score_batting_table('home', box_score)
+            ],
+            [
+                box_score_pitching_table('away', live_data),
+                box_score_pitching_table('home', live_data)
+            ]
+        ],
+        tablefmt='fancy_grid'
+    )
 
 
 def box_score_batting_table(team, box_score, table_format='simple'):
-    team_name = box_score['teams'][team]['team']['name']
     players = box_score['teams'][team]['players']
     lineup = [x for _, x in players.items() if 'battingOrder' in x]
     sorted_lineup = sorted(lineup, key=lambda k: k['battingOrder'])
@@ -92,7 +102,7 @@ def box_score_batting_table(team, box_score, table_format='simple'):
             ]
             for x in sorted_lineup
         ],
-        headers=['', '', team_name, 'AB', 'H', 'R', 'RBI', 'BB', 'SO'],
+        headers=['#', 'POS', 'Name', 'AB', 'H', 'R', 'RBI', 'BB', 'SO'],
         tablefmt=table_format
     )
 
@@ -126,12 +136,14 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
             ]
             for x in pitchers
         ],
-        headers=['', 'IP', 'H', 'R', 'ER', 'BB', 'SO'],
+        headers=['Name', 'IP', 'H', 'R', 'ER', 'BB', 'SO'],
         tablefmt=table_format
     )
 
 
-def line_score_table(line_score, box_score, table_format='fancy_grid'):
+def line_score_table(live_data, table_format='fancy_grid'):
+    box_score = live_data['boxscore']
+    line_score = live_data['linescore']
 
     home_team = box_score['teams']['home']['team']['name']
     home_team_hits = line_score['teams']['home']['hits']
@@ -183,25 +195,12 @@ def line_score_table(line_score, box_score, table_format='fancy_grid'):
         numalign='right'
     )
 
-    merged = merge_tables(labels, innings)
-    return merge_tables(merged, totals)
-
-
-def merge_tables(left, right, sep=''):
-    left_split = left.split('\n')
-    right_split = right.split('\n')
-    left_width = max([len(x) for x in left_split])
-    larger_size = max(len(left_split), len(right_split))
-    result = [None] * larger_size
-    for i in range(0, larger_size):
-        if i < len(left_split):
-            result[i] = left_split[i]
-        else:
-            result[i] = ' ' * left_width
-        result[i] += sep
-        if i < len(right_split):
-            result[i] += right_split[i]
-    return '\n'.join(result)
+    return tabulate(
+        [
+            [labels, innings, totals]
+        ],
+        tablefmt='plain'
+    )
 
 
 def find_game(day, team_id):
