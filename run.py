@@ -5,11 +5,7 @@ from tabulate import tabulate
 
 from teams import TEAMS
 
-# TODO - (cleanup) split into modules for CLI, data, API calls
-
 # TODO - (feature) add CLI args (date, team, list nplays, autorefresh)
-
-# TODO - (feature) add header with teams, weather, stadium, time, record
 
 # TODO - (feature) figure out how live data will look
 # current inning
@@ -44,13 +40,13 @@ def main():
 
     # get details about game
     game_details = game_data(game['gamePk'])
-    live_data = game_details['liveData']
 
-    line_score = line_score_table(live_data)
-    box_score = box_score_table(live_data)
-
+    summary = summary_table(game_details)
+    line_score = line_score_table(game_details)
+    box_score = box_score_table(game_details)
     print(tabulate(
         [
+            [summary],
             [line_score],
             [box_score]
         ],
@@ -59,7 +55,36 @@ def main():
     ))
 
 
-def box_score_table(live_data):
+def summary_table(game_details, table_format='simple'):
+    game_data = game_details['gameData']
+
+    game_status = game_data['status']['detailedState']
+    game_time = game_data['datetime']
+    venue = game_data['venue']
+    weather = game_data['weather']
+
+    away_team = game_data['teams']['away']
+    home_team = game_data['teams']['home']
+
+    def format_team(team):
+        return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
+    format_time = f"{game_time['time']} {game_time['ampm']}"  # TODO - what timezone is this?  # noqa:E501
+    format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
+    format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}"  # noqa:E501
+
+    return tabulate(
+        [
+            [f'{format_team(away_team)} @ {format_team(home_team)}'],
+            [f'{format_time} {format_venue}'],
+            [format_weather],
+            [game_status]
+        ],
+        tablefmt=table_format
+    )
+
+
+def box_score_table(game_details):
+    live_data = game_details['liveData']
     box_score = live_data['boxscore']
     return tabulate(
         [
@@ -141,7 +166,8 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
     )
 
 
-def line_score_table(live_data, table_format='fancy_grid'):
+def line_score_table(game_details, table_format='fancy_grid'):
+    live_data = game_details['liveData']
     box_score = live_data['boxscore']
     line_score = live_data['linescore']
 
