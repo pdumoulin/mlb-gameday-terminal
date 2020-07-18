@@ -1,5 +1,6 @@
 
 import argparse
+import datetime
 
 import requests
 
@@ -22,10 +23,15 @@ def main():
 
     # cli args data
     parser = argparse.ArgumentParser()
-    parser.add_argument('--team', required=True,
-                        help='team to find game for')
-    parser.add_argument('--date', required=True,
-                        help='YYYY-MM-DD date to find game for')
+    parser.add_argument(
+        '--team',
+        required=True,
+        help='team to find game for')
+    parser.add_argument(
+        '--date',
+        required=False,
+        default=datetime.date.today(),
+        help='YYYY-MM-DD date to find game for')
     args = parser.parse_args()
     team_arg = args.team
     date_arg = args.date
