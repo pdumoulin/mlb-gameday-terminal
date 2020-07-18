@@ -18,6 +18,7 @@ from teams import TEAMS
 # count
 # bases
 
+PREGAME_STATUSES = ['scheduled', 'pre-game', 'warmup']
 
 def main():
 
@@ -82,7 +83,7 @@ def main():
     rows.append(line_score)
     rows.append(box_score)
     rows.append(broadcast)
-    if game_details['_status'] in ['scheduled', 'pre-game']:
+    if game_details['_status'] in PREGAME_STATUSES:
         probable_pitchers = probable_pitchers_table(game_details)
         rows.append(probable_pitchers)
 
@@ -295,7 +296,7 @@ def line_score_table(game_details, table_format='fancy_grid'):
     home_inning_scores = []
     away_inning_scores = []
     placeholder = '-' if game_details['_status'] != 'final' else 'x'
-    if game_details['_status'] not in ['scheduled', 'pre-game']:
+    if game_details['_status'] not in PREGAME_STATUSES:
         current_inning = int(line_score['currentInning'])
         is_top = line_score['inningHalf'].lower() == 'top'
         for inning in inning_scores:
