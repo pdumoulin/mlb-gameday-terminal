@@ -100,7 +100,7 @@ def summary_table(game_details, table_format='simple'):
 
     format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
     format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
-    format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else ''  # noqa:E501
+    format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else '-'  # noqa:E501
     overview_rows = [
         [f'{format_team(away_team)} @ {format_team(home_team)}'],
         [f'{format_time} {format_venue}'],
