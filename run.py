@@ -143,8 +143,14 @@ def broadcast_table(game_details, table_format='simple'):
 def box_score_table(game_details, allow_empty=False):
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
-    away_lineup = _lineup('away', box_score)
-    home_lineup = _lineup('home', box_score)
+
+    def lineup(team, box_score):
+        players = box_score['teams'][team]['players']
+        active_players = [x for _, x in players.items() if 'battingOrder' in x]
+        return sorted(active_players, key=lambda k: k['battingOrder'])
+
+    away_lineup = lineup('away', box_score)
+    home_lineup = lineup('home', box_score)
     if not allow_empty and not away_lineup and not home_lineup:
         return ''
     return tabulate(
@@ -162,10 +168,6 @@ def box_score_table(game_details, allow_empty=False):
     )
 
 
-def _lineup(team, box_score):
-    players = box_score['teams'][team]['players']
-    lineup = [x for _, x in players.items() if 'battingOrder' in x]
-    return sorted(lineup, key=lambda k: k['battingOrder'])
 
 
 def box_score_batting_table(lineup, table_format='simple'):
