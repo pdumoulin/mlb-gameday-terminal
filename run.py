@@ -13,7 +13,7 @@ from teams import TEAMS
 # TODO - add auto refresh if game not finished
 # watch or python internal for color diff?
 
-# TODO - (feature) figure out how live data will look
+# TODO - (feature) figure out how live data will look [NEED SAMPLE]
 # current inning
 # at bat and pitching
 # count
@@ -66,10 +66,10 @@ def main():
         if x['language'].lower() in languages
     ]
 
+    # tables to display
     summary = summary_table(game_details)
     line_score = line_score_table(game_details)
     box_score = box_score_table(game_details)
-
     broadcast = broadcast_table(game_details)
 
     print(tabulate(
@@ -140,14 +140,18 @@ def broadcast_table(game_details, table_format='simple'):
     )
 
 
-def box_score_table(game_details):
+def box_score_table(game_details, allow_empty=False):
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
+    away_lineup = _lineup('away', box_score)
+    home_lineup = _lineup('home', box_score)
+    if not allow_empty and not away_lineup and not home_lineup:
+        return ''
     return tabulate(
         [
             [
-                box_score_batting_table('away', box_score),
-                box_score_batting_table('home', box_score)
+                box_score_batting_table(away_lineup),
+                box_score_batting_table(home_lineup)
             ],
             [
                 box_score_pitching_table('away', live_data),
@@ -158,11 +162,13 @@ def box_score_table(game_details):
     )
 
 
-def box_score_batting_table(team, box_score, table_format='simple'):
+def _lineup(team, box_score):
     players = box_score['teams'][team]['players']
     lineup = [x for _, x in players.items() if 'battingOrder' in x]
-    sorted_lineup = sorted(lineup, key=lambda k: k['battingOrder'])
+    return sorted(lineup, key=lambda k: k['battingOrder'])
 
+
+def box_score_batting_table(lineup, table_format='simple'):
     def display_order(batter):
         batting_order = int(batter['battingOrder'])
         if not batting_order % 100:
@@ -182,7 +188,7 @@ def box_score_batting_table(team, box_score, table_format='simple'):
                 x['stats']['batting']['baseOnBalls'],
                 x['stats']['batting']['strikeOuts']
             ]
-            for x in sorted_lineup
+            for x in lineup
         ],
         headers=['#', 'POS', 'Name', 'AB', 'H', 'R', 'RBI', 'BB', 'SO'],
         tablefmt=table_format
