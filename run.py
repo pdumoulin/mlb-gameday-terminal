@@ -11,12 +11,14 @@ from teams import TEAMS
 # TODO - add W/L markers for teams and pitchers if game is final
 
 # TODO - add auto refresh if game not finished
+# watch or python internal for color diff?
 
 # TODO - (feature) figure out how live data will look
 # current inning
 # at bat and pitching
 # count
 # bases
+# probably pitchers
 
 
 def main():
@@ -56,14 +58,26 @@ def main():
     # get details about game
     game_details = game_data(game['gamePk'])
 
+    # merge in data that only exists from game schedule call
+    languages = ['en']
+    game_details['broadcasts'] = [
+        x
+        for x in game['broadcasts']
+        if x['language'].lower() in languages
+    ]
+
     summary = summary_table(game_details)
     line_score = line_score_table(game_details)
     box_score = box_score_table(game_details)
+
+    broadcast = broadcast_table(game_details)
+
     print(tabulate(
         [
             [summary],
             [line_score],
-            [box_score]
+            [box_score],
+            [broadcast]
         ],
         tablefmt='plain',
         stralign='center'
@@ -83,17 +97,45 @@ def summary_table(game_details, table_format='simple'):
 
     def format_team(team):
         return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
-    format_time = f"{game_time['time']} {game_time['ampm']}"  # TODO - what timezone is this?  # noqa:E501
+
+    format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
     format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
     format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else ''  # noqa:E501
-
+    overview_rows = [
+        [f'{format_team(away_team)} @ {format_team(home_team)}'],
+        [f'{format_time} {format_venue}'],
+        [format_weather],
+        [game_status]
+    ]
     return tabulate(
-        [
-            [f'{format_team(away_team)} @ {format_team(home_team)}'],
-            [f'{format_time} {format_venue}'],
-            [format_weather],
-            [game_status]
-        ],
+        overview_rows,
+        tablefmt=table_format
+    )
+
+
+def broadcast_table(game_details, table_format='simple'):
+    broadcasts = game_details['broadcasts']
+
+    def format_broadcast(medium):
+        filtered = ', '.join(
+            set(
+                [
+                    x['name']
+                    for x in broadcasts
+                    if x['type'].lower() == medium.lower()
+                ]
+            )
+        )
+        return f'{medium.upper()}: {filtered}' if filtered else None
+
+    broadcast_rows = []
+    broadcast_mediums = ['tv', 'fm', 'am']
+    for medium in broadcast_mediums:
+        line = format_broadcast(medium)
+        if line:
+            broadcast_rows.append([line])
+    return tabulate(
+        broadcast_rows,
         tablefmt=table_format
     )
 
@@ -250,7 +292,8 @@ def find_game(day, team_id):
         'date': day,
         'language': 'en',
         'sportId': 1,
-        'teamId': team_id
+        'teamId': team_id,
+        'hydrate': 'broadcasts(all)'
     }
     response = requests.get(url, params=params)
     data = response.json()
