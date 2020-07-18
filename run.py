@@ -14,7 +14,6 @@ from teams import TEAMS
 # watch or python internal for color diff?
 
 # TODO - (feature) figure out how live data will look [NEED SAMPLE]
-# current inning
 # at bat and pitching
 # count
 # bases
@@ -56,7 +55,9 @@ def main():
 
     # get details about game
     game_details = game_data(game['gamePk'])
-    game_status = game_details['gameData']['status']['detailedState'].lower()
+
+    # pull out game status for easy access elsewhere
+    game_details['_status'] = game_details['gameData']['status']['detailedState'].lower()  # noqa:E501
 
     # merge in data that only exists from game schedule call
     languages = ['en']
@@ -66,21 +67,23 @@ def main():
         if x['language'].lower() in languages
     ]
 
+    # uncomment to output raw data for later testing
+    # print(game_details)
+    # exit()
+
     # tables to display
     summary = summary_table(game_details)
     line_score = line_score_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
-    probable_pitchers = probable_pitchers_table(game_details)
 
     rows = []
     rows.append(summary)
     rows.append(line_score)
     rows.append(box_score)
     rows.append(broadcast)
-
-    # TODO - may need to verify these statuses
-    if game_status not in ['final', 'started']:
+    if game_details['_status'] in ['scheduled', 'pre-game']:
+        probable_pitchers = probable_pitchers_table(game_details)
         rows.append(probable_pitchers)
 
     print(tabulate(
@@ -210,8 +213,6 @@ def box_score_table(game_details, allow_empty=False):
     )
 
 
-
-
 def box_score_batting_table(lineup, table_format='simple'):
     def display_order(batter):
         batting_order = int(batter['battingOrder'])
@@ -289,15 +290,26 @@ def line_score_table(game_details, table_format='fancy_grid'):
     away_team_errors = line_score['teams']['away'].get('errors', 0)
 
     inning_scores = line_score['innings']
-    placeholders = ['-'] * (9 - len(inning_scores))
-    home_inning_scores = [
-        x['home'].get('runs', 'x')  # handle bottom 9th not being played
-        for x in inning_scores
-    ] + placeholders
-    away_inning_scores = [
-        x['away']['runs']
-        for x in inning_scores
-    ] + placeholders
+
+    # fill in innings that have data so far (work for final games as well)
+    home_inning_scores = []
+    away_inning_scores = []
+    placeholder = '-' if game_details['_status'] != 'final' else 'x'
+    if game_details['_status'] not in ['scheduled', 'pre-game']:
+        current_inning = int(line_score['currentInning'])
+        is_top = line_score['inningHalf'].lower() == 'top'
+        for inning in inning_scores:
+            away_inning_scores.append(inning['away'].get('runs', 0))
+            if inning['num'] == current_inning and is_top:
+                home_inning_scores.append(placeholder)
+            else:
+                home_inning_scores.append(inning['home'].get('runs', 0))
+
+    # fill in gaps if they exist
+    scheduled_len = int(line_score['scheduledInnings'])
+    placeholders = [placeholder] * (scheduled_len - len(inning_scores))
+    home_inning_scores += placeholders
+    away_inning_scores += placeholders
 
     labels = tabulate(
         [
