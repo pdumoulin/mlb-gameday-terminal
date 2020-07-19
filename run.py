@@ -159,42 +159,41 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
     pitchers = game_data.get('probablePitchers')
-    if pitchers:
-        def format_pitcher(team):
-            team_name = box_score['teams'][team]['team']['name']
-            pitcher = pitchers.get(team)
-            if pitcher:
-                pid = pitchers[team]['id']
-                pitcher = box_score['teams'][team]['players'][f'ID{pid}']
-                stats = pitcher['seasonStats']['pitching']
-                return [
-                    team_name,
-                    pitcher['person']['fullName'],
-                    stats['gamesPlayed'],
-                    stats['inningsPitched'],
-                    stats['wins'],
-                    stats['losses'],
-                    stats['saves'],
-                    stats['era'],
-                    stats['strikeOuts'],
-                    stats['baseOnBalls']
-                ]
-            else:
-                return [team_name] + [''] * 9
-        return tabulate(
-            [
-                format_pitcher('away'),
-                format_pitcher('home')
-            ],
-            headers=[
-                '',
-                'Probable Pitchers',
-                'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'
-            ],
-            tablefmt=table_format,
-            numalign='center'
-        )
-    return ''
+
+    def format_pitcher(team):
+        team_name = box_score['teams'][team]['team']['name']
+        pitcher = pitchers.get(team)
+        if pitcher:
+            pid = pitchers[team]['id']
+            pitcher = box_score['teams'][team]['players'][f'ID{pid}']
+            stats = pitcher['seasonStats']['pitching']
+            return [
+                team_name,
+                pitcher['person']['fullName'],
+                stats['gamesPlayed'],
+                stats['inningsPitched'],
+                stats['wins'],
+                stats['losses'],
+                stats['saves'],
+                stats['era'],
+                stats['strikeOuts'],
+                stats['baseOnBalls']
+            ]
+        else:
+            return [team_name] + [''] * 9
+    return tabulate(
+        [
+            format_pitcher('away'),
+            format_pitcher('home')
+        ],
+        headers=[
+            '',
+            'Probable Pitchers',
+            'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'
+        ],
+        tablefmt=table_format,
+        numalign='center'
+    )
 
 
 def box_score_table(game_details, allow_empty=False):
