@@ -82,10 +82,10 @@ def main():
     rows.append(summary)
     rows.append(line_score)
     rows.append(box_score)
-    rows.append(broadcast)
     if game_details['_status'] in PREGAME_STATUSES:
         probable_pitchers = probable_pitchers_table(game_details)
         rows.append(probable_pitchers)
+    rows.append(broadcast)
 
     print(tabulate(
         [
