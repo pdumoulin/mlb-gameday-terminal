@@ -80,11 +80,12 @@ def main():
 
     rows = []
     rows.append(summary)
-    rows.append(line_score)
-    rows.append(box_score)
     if game_details['_status'] in PREGAME_STATUSES:
         probable_pitchers = probable_pitchers_table(game_details)
         rows.append(probable_pitchers)
+    else:
+        rows.append(line_score)
+    rows.append(box_score)
     rows.append(broadcast)
 
     print(tabulate(
@@ -160,13 +161,14 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
     pitchers = game_data.get('probablePitchers')
     if pitchers:
         def format_pitcher(team):
+            team_name = box_score['teams'][team]['team']['name']
             pitcher = pitchers.get(team)
             if pitcher:
                 pid = pitchers[team]['id']
                 pitcher = box_score['teams'][team]['players'][f'ID{pid}']
                 stats = pitcher['seasonStats']['pitching']
                 return [
-                    team.title(),
+                    team_name,
                     pitcher['person']['fullName'],
                     stats['gamesPlayed'],
                     stats['inningsPitched'],
@@ -178,14 +180,19 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
                     stats['baseOnBalls']
                 ]
             else:
-                return [team.title()] + [''] * 9
+                return [team_name] + [''] * 9
         return tabulate(
             [
                 format_pitcher('away'),
                 format_pitcher('home')
             ],
-            headers=['', '', 'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'],
-            tablefmt=table_format
+            headers=[
+                '',
+                'Probable Pitchers',
+                'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'
+            ],
+            tablefmt=table_format,
+            numalign='center'
         )
     return ''
 
