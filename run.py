@@ -160,21 +160,25 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
     pitchers = game_data.get('probablePitchers')
     if pitchers:
         def format_pitcher(team):
-            pid = pitchers[team]['id']
-            pitcher = box_score['teams'][team]['players'][f'ID{pid}']
-            stats = pitcher['seasonStats']['pitching']
-            return [
-                team.title(),
-                pitcher['person']['fullName'],
-                stats['gamesPlayed'],
-                stats['inningsPitched'],
-                stats['wins'],
-                stats['losses'],
-                stats['saves'],
-                stats['era'],
-                stats['strikeOuts'],
-                stats['baseOnBalls']
-            ]
+            pitcher = pitchers.get(team)
+            if pitcher:
+                pid = pitchers[team]['id']
+                pitcher = box_score['teams'][team]['players'][f'ID{pid}']
+                stats = pitcher['seasonStats']['pitching']
+                return [
+                    team.title(),
+                    pitcher['person']['fullName'],
+                    stats['gamesPlayed'],
+                    stats['inningsPitched'],
+                    stats['wins'],
+                    stats['losses'],
+                    stats['saves'],
+                    stats['era'],
+                    stats['strikeOuts'],
+                    stats['baseOnBalls']
+                ]
+            else:
+                return [team.title()] + [''] * 9
         return tabulate(
             [
                 format_pitcher('away'),
