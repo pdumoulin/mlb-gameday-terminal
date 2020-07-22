@@ -132,13 +132,13 @@ def broadcast_table(game_details, table_format='simple'):
 
     def format_broadcast(medium):
         filtered = ', '.join(
-            set(
+            sorted(set(
                 [
                     x['name']
                     for x in broadcasts
                     if x['type'].lower() == medium.lower()
                 ]
-            )
+            ))
         )
         return f'{medium.upper()}: {filtered}' if filtered else None
 
