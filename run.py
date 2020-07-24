@@ -87,7 +87,6 @@ def main():
 
     # tables to display
     summary = summary_table(game_details)
-    line_score = line_score_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
 
@@ -97,6 +96,7 @@ def main():
         probable_pitchers = probable_pitchers_table(game_details)
         rows.append(probable_pitchers)
     else:
+        line_score = line_score_table(game_details)
         rows.append(line_score)
     rows.append(box_score)
     rows.append(broadcast)
@@ -376,12 +376,14 @@ def line_score_table(game_details, table_format='fancy_grid'):
             checked if x < num_checked else unchecked
             for x in range(0, total)
         ]
-    current_count = live_data['plays']['currentPlay']['count']
+
+    current_play = live_data['plays'].get('currentPlay', {})
+    current_count = current_play.get('count', {})
     count = tabulate(
         [
-            format_checks('B', current_count['balls'], 4),
-            format_checks('S', current_count['strikes'], 3),
-            format_checks('O', current_count['outs'], 3)
+            format_checks('B', current_count.get('balls', 0), 4),
+            format_checks('S', current_count.get('strikes', 0), 3),
+            format_checks('O', current_count.get('outs', 0), 3)
         ],
         headers=[],
         stralign='center',
