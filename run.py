@@ -235,7 +235,7 @@ def box_score_batting_table(lineup, current_batter, table_format='simple'):
         return ''
 
     def player_name(batter, current_batter):
-        modifier = '*' if batter['id'] == current_batter else ''
+        modifier = '*' if batter['id'] == current_batter else ' '
         return f"{modifier} {batter['fullName']}"
 
     return tabulate.tabulate(
