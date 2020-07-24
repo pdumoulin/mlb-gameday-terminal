@@ -30,6 +30,12 @@ $ python run.py query --team nym --date 2019-09-27
 ```
 $ watch -d -n 60 "python run.py query --team nym"
 ```
+## Update Teams List
+By default teams with the names, abbreviations, and IDs are stored in `teams.py`. In the unlikely event you need to update that list, run the following...
+```
+$ python fetch_team_ids.py > teams.py
+```
+
 ## Use Sample Data
 Repo includes past games in certain states in **games.p** for easier debugging and development.
 
