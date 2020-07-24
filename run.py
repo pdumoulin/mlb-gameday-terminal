@@ -4,7 +4,7 @@ import datetime
 
 import requests
 
-from tabulate import tabulate
+import tabulate
 
 from teams import TEAMS
 
@@ -100,7 +100,7 @@ def main():
         rows.append(line_score)
     rows.append(box_score)
     rows.append(broadcast)
-    print(tabulate(
+    print(tabulate.tabulate(
         [
             [x]
             for x in rows
@@ -139,7 +139,7 @@ def summary_table(game_details, table_format='simple'):
         [format_weather],
         [game_status]
     ]
-    return tabulate(
+    return tabulate.tabulate(
         overview_rows,
         tablefmt=table_format
     )
@@ -166,7 +166,7 @@ def broadcast_table(game_details, table_format='simple'):
         line = format_broadcast(medium)
         if line:
             broadcast_rows.append([line])
-    return tabulate(
+    return tabulate.tabulate(
         broadcast_rows,
         tablefmt=table_format
     )
@@ -199,7 +199,7 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
             ]
         else:
             return [team_name] + [''] * 9
-    return tabulate(
+    return tabulate.tabulate(
         [
             format_pitcher('away'),
             format_pitcher('home')
@@ -227,7 +227,7 @@ def box_score_table(game_details, allow_empty=False):
     home_lineup = lineup('home', box_score)
     if not allow_empty and not away_lineup and not home_lineup:
         return ''
-    return tabulate(
+    return tabulate.tabulate(
         [
             [
                 box_score_batting_table(away_lineup),
@@ -249,7 +249,7 @@ def box_score_batting_table(lineup, table_format='simple'):
             return int(batting_order / 100)
         return ''
 
-    return tabulate(
+    return tabulate.tabulate(
         [
             [
                 display_order(x),
@@ -285,7 +285,7 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
         live_data['boxscore']['teams'][team]['players'][f'ID{x}']
         for x in pitcher_ids
     ]
-    return tabulate(
+    return tabulate.tabulate(
         [
             [
                 x['person']['fullName'],
@@ -340,7 +340,7 @@ def line_score_table(game_details, table_format='fancy_grid'):
     home_inning_scores += placeholders
     away_inning_scores += placeholders
 
-    labels = tabulate(
+    labels = tabulate.tabulate(
         [
             [away_team],
             [home_team]
@@ -349,7 +349,7 @@ def line_score_table(game_details, table_format='fancy_grid'):
         tablefmt=table_format,
         stralign='left'
     )
-    innings = tabulate(
+    innings = tabulate.tabulate(
         [
             away_inning_scores,
             home_inning_scores
@@ -359,7 +359,7 @@ def line_score_table(game_details, table_format='fancy_grid'):
         numalign='center',
         stralign='center'
     )
-    totals = tabulate(
+    totals = tabulate.tabulate(
         [
             [away_team_runs, away_team_hits, away_team_errors],
             [home_team_runs, home_team_hits, home_team_errors],
@@ -379,23 +379,32 @@ def line_score_table(game_details, table_format='fancy_grid'):
 
     current_play = live_data['plays'].get('currentPlay', {})
     current_count = current_play.get('count', {})
-    count = tabulate(
+    count = tabulate.tabulate(
         [
             format_checks('B', current_count.get('balls', 0), 4),
             format_checks('S', current_count.get('strikes', 0), 3),
             format_checks('O', current_count.get('outs', 0), 3)
         ],
         headers=[],
-        stralign='center',
-        tablefmt=table_format
+        stralign='left',
+        tablefmt='grid'
     )
+    count = _ghost_grid(count)
 
-    return tabulate(
+    return _ghost_grid(tabulate.tabulate(
         [
             [labels, innings, totals, count]
         ],
-        tablefmt='plain'
-    )
+        tablefmt='grid'
+    ))
+
+
+def _ghost_grid(string_table):
+    """Turn grid table into what plain table should be."""
+    seps = ['|', '+', '-']
+    for sep in seps:
+        string_table = string_table.replace(sep, ' ')
+    return string_table
 
 
 def find_game(day, team_id):
