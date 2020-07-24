@@ -17,7 +17,6 @@ tabulate.PRESERVE_WHITESPACE = True
 # TODO - how would a double header look?
 
 # TODO - features
-# W/L markers for final games
 # at bat marker in boxscore
 # latest play
 
@@ -330,6 +329,16 @@ def line_score_tables(game_details, table_format='fancy_grid'):
     placeholders = [placeholder] * (scheduled_len - len(inning_scores))
     home_inning_scores += placeholders
     away_inning_scores += placeholders
+
+    if _game_finished(game_details['_status']):
+        w_marker = 'W -'
+        l_marker = 'L -'
+        if away_team_runs > home_team_runs:
+            away_team = f'{w_marker} {away_team}'
+            home_team = f'{l_marker} {home_team}'
+        elif home_team_runs > away_team_runs:
+            away_team = f'{l_marker} {away_team}'
+            home_team = f'{w_marker} {home_team}'
 
     labels = tabulate.tabulate(
         [
