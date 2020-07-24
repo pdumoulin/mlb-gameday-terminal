@@ -10,13 +10,9 @@ import tabulate
 from teams import TEAMS
 
 tabulate.PRESERVE_WHITESPACE = True
-# TODO - update README for team ID script
-
 # TODO - screenshots for README
-
 # TODO - how would a double header look?
-
-# TODO - features
+# TODO - docstrings
 # at bat marker in boxscore
 # latest play
 
@@ -372,10 +368,15 @@ def line_score_tables(game_details, table_format='fancy_grid'):
 
 
 def bases_table(game_details):
+    live_data = game_details['liveData']
+    offense = live_data['linescore']['offense']
+    first = ON if 'first' in offense else OFF
+    second = ON if 'second' in offense else OFF
+    third = ON if 'third' in offense else OFF
     return _ghost_grid(
         [
-            [' ', ON, ' '],
-            [ON, '-', OFF],
+            [' ', second, ' '],
+            [third, '-', first],
         ],
         border=False
     )
