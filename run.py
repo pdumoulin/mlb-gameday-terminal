@@ -379,32 +379,53 @@ def line_score_table(game_details, table_format='fancy_grid'):
 
     current_play = live_data['plays'].get('currentPlay', {})
     current_count = current_play.get('count', {})
-    count = tabulate.tabulate(
+    count = _ghost_grid(
         [
             format_checks('B', current_count.get('balls', 0), 4),
             format_checks('S', current_count.get('strikes', 0), 3),
             format_checks('O', current_count.get('outs', 0), 3)
         ],
         headers=[],
-        stralign='left',
-        tablefmt='grid'
+        stralign='left'
     )
-    count = _ghost_grid(count)
 
-    return _ghost_grid(tabulate.tabulate(
+    return _ghost_grid(
         [
             [labels, innings, totals, count]
-        ],
+        ]
+    )
+
+
+def _ghost_grid(table, headers=[], stralign='center', numalign='center'):
+    """
+        Fix for nested tables when using "plain" format.
+
+        Escape table delimiter characters, format using "grid" format
+        then replace esaped chacaters to get invisible grid layout.
+    """
+    escapes = [
+        ('-', '‡'),
+        ('+', '†'),
+        ('|', 'ƒ')
+    ]
+    escaped_table = []
+    for row in table:
+        escaped_row = []
+        for cell in row:
+            for escape in escapes:
+                cell = cell.replace(escape[0], escape[1])
+            escaped_row.append(cell)
+        escaped_table.append(escaped_row)
+    grid_table = tabulate.tabulate(
+        escaped_table,
+        numalign=numalign,
+        stralign=stralign,
         tablefmt='grid'
-    ))
-
-
-def _ghost_grid(string_table):
-    """Turn grid table into what plain table should be."""
-    seps = ['|', '+', '-']
-    for sep in seps:
-        string_table = string_table.replace(sep, ' ')
-    return string_table
+    )
+    for escape in escapes:
+        grid_table = grid_table.replace(escape[0], ' ')
+        grid_table = grid_table.replace(escape[1], escape[0])
+    return grid_table
 
 
 def find_game(day, team_id):
