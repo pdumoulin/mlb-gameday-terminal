@@ -102,7 +102,6 @@ def main():
         ]
     elif _game_live(game_details['_status']):
         rows = [
-            summary,
             _ghost_grid([
                 [bases, summary, count],
                 [labels, innings, totals]
