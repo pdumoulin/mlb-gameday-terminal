@@ -8,17 +8,29 @@ from tabulate import tabulate
 
 from teams import TEAMS
 
-# TODO - add W/L markers for teams and pitchers if game is final
+# TODO - commit fixtures in single file / add CLI to append to it
 
-# TODO - add auto refresh if game not finished
-# watch or python internal for color diff?
+# TODO - update README for team ID script
 
-# TODO - (feature) figure out how live data will look [NEED SAMPLE]
+# TODO - ASCII team logos?
+
+# TODO - screenshots for README
+
+# TODO - how would a double header look?
+
+# TODO - features
 # at bat and pitching
 # count
-# bases
+# base runners
+# W/L markers for final games
 
-PREGAME_STATUSES = ['scheduled', 'pre-game', 'warmup']
+SCHEDULED = 'scheduled'
+PREGAME = 'pre-game'
+WARMUP = 'warmup'
+IN_PROGRESS = 'in progress'
+FINAL = 'final'
+PREGAME_STATUSES = [SCHEDULED, PREGAME, WARMUP]
+
 
 def main():
 
@@ -108,6 +120,12 @@ def summary_table(game_details, table_format='simple'):
 
     away_team = game_data['teams']['away']
     home_team = game_data['teams']['home']
+
+    if game_details['_status'] == IN_PROGRESS:
+        line_score = game_details['liveData']['linescore']
+        current_inning = line_score['currentInning']
+        half = line_score['inningHalf']
+        game_status += f' - {half} {current_inning}'
 
     def format_team(team):
         return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
