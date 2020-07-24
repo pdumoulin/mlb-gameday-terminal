@@ -454,7 +454,7 @@ def _game_live(status):
 
 
 def _game_finished(status):
-    return _check_status(status, ['final'], ['completed'])
+    return _check_status(status, ['final', 'game over'], ['completed'])
 
 
 def _check_status(status, in_statuses, in_partials=[]):
