@@ -13,6 +13,10 @@ $ source env/bin/activate
 ```
 $ pip install -r requirements.txt
 ```
+4. Download team ID mappings
+```
+$ python fetch_team_ids.py > teams.py
+```
 
 ## Query for Game Data
 1. Activate virtual env (see install above)
