@@ -13,7 +13,6 @@ tabulate.PRESERVE_WHITESPACE = True
 # TODO - screenshots for README
 # TODO - how would a double header look?
 # TODO - docstrings
-# at bat marker in boxscore
 # latest play
 
 SCHEDULED = 'scheduled'
@@ -206,6 +205,7 @@ def box_score_table(game_details, allow_empty=False):
         active_players = [x for _, x in players.items() if 'battingOrder' in x]
         return sorted(active_players, key=lambda k: k['battingOrder'])
 
+    batter_id = live_data['linescore']['offense']['batter']['id']
     away_lineup = lineup('away', box_score)
     home_lineup = lineup('home', box_score)
     if not allow_empty and not away_lineup and not home_lineup:
@@ -213,8 +213,8 @@ def box_score_table(game_details, allow_empty=False):
     return tabulate.tabulate(
         [
             [
-                box_score_batting_table(away_lineup),
-                box_score_batting_table(home_lineup)
+                box_score_batting_table(away_lineup, batter_id),
+                box_score_batting_table(home_lineup, batter_id)
             ],
             [
                 box_score_pitching_table('away', live_data),
@@ -227,19 +227,23 @@ def box_score_table(game_details, allow_empty=False):
     )
 
 
-def box_score_batting_table(lineup, table_format='simple'):
+def box_score_batting_table(lineup, current_batter, table_format='simple'):
     def display_order(batter):
         batting_order = int(batter['battingOrder'])
         if not batting_order % 100:
             return int(batting_order / 100)
         return ''
 
+    def player_name(batter, current_batter):
+        modifier = '*' if batter['id'] == current_batter else ''
+        return f"{modifier} {batter['fullName']}"
+
     return tabulate.tabulate(
         [
             [
                 display_order(x),
                 x['position']['abbreviation'],
-                x['person']['fullName'],
+                player_name(x['person'], current_batter),
                 x['stats']['batting']['atBats'],
                 x['stats']['batting']['hits'],
                 x['stats']['batting']['runs'],
