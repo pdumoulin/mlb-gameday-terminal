@@ -8,6 +8,7 @@ from tabulate import tabulate
 
 from teams import TEAMS
 
+tabulate.PRESERVE_WHITESPACE = True
 # TODO - commit fixtures in single file / add CLI to append to it
 
 # TODO - update README for team ID script
@@ -19,10 +20,10 @@ from teams import TEAMS
 # TODO - how would a double header look?
 
 # TODO - features
-# at bat and pitching
-# count
-# base runners
+# at bat and pitching (in boxscore?)
+# base runners (in boxscore?)
 # W/L markers for final games
+# latest play
 
 SCHEDULED = 'scheduled'
 PREGAME = 'pre-game'
@@ -99,7 +100,6 @@ def main():
         rows.append(line_score)
     rows.append(box_score)
     rows.append(broadcast)
-
     print(tabulate(
         [
             [x]
@@ -121,7 +121,7 @@ def summary_table(game_details, table_format='simple'):
     away_team = game_data['teams']['away']
     home_team = game_data['teams']['home']
 
-    if game_details['_status'] == IN_PROGRESS:
+    if game_details['_status'] == IN_PROGRESS or 'delayed' in game_details['_status']:  # noqa: E501
         line_score = game_details['liveData']['linescore']
         current_inning = line_score['currentInning']
         half = line_score['inningHalf']
@@ -369,9 +369,28 @@ def line_score_table(game_details, table_format='fancy_grid'):
         numalign='right'
     )
 
+    def format_checks(label, num_checked, total):
+        checked = '▣'
+        unchecked = '□'
+        return [label] + [
+            checked if x < num_checked else unchecked
+            for x in range(0, total)
+        ]
+    current_count = live_data['plays']['currentPlay']['count']
+    count = tabulate(
+        [
+            format_checks('B', current_count['balls'], 4),
+            format_checks('S', current_count['strikes'], 3),
+            format_checks('O', current_count['outs'], 3)
+        ],
+        headers=[],
+        stralign='center',
+        tablefmt=table_format
+    )
+
     return tabulate(
         [
-            [labels, innings, totals]
+            [labels, innings, totals, count]
         ],
         tablefmt='plain'
     )
