@@ -13,16 +13,13 @@ tabulate.PRESERVE_WHITESPACE = True
 
 # TODO - update README for team ID script
 
-# TODO - ASCII team logos?
-
 # TODO - screenshots for README
 
 # TODO - how would a double header look?
 
 # TODO - features
-# at bat and pitching (in boxscore?)
-# base runners (in boxscore?)
 # W/L markers for final games
+# at bat marker in boxscore
 # latest play
 
 SCHEDULED = 'scheduled'
@@ -30,11 +27,12 @@ PREGAME = 'pre-game'
 WARMUP = 'warmup'
 IN_PROGRESS = 'in progress'
 FINAL = 'final'
-PREGAME_STATUSES = [SCHEDULED, PREGAME, WARMUP]
+
+ON = '▣'
+OFF = '□'
 
 
 def main():
-
     # cli args data
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -89,17 +87,41 @@ def main():
     summary = summary_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
+    probable_pitchers = probable_pitchers_table(game_details)
+    (labels, innings, totals) = line_score_tables(game_details)
+    bases = bases_table(game_details)
+    count = count_table(game_details)
 
     rows = []
-    rows.append(summary)
-    if game_details['_status'] in PREGAME_STATUSES:
-        probable_pitchers = probable_pitchers_table(game_details)
-        rows.append(probable_pitchers)
+    if _game_pending(game_details['_status']):
+        rows = [
+            summary,
+            probable_pitchers,
+            box_score,
+            broadcast
+        ]
+    elif _game_live(game_details['_status']):
+        rows = [
+            summary,
+            _ghost_grid([
+                [bases, summary, count],
+                [labels, innings, totals]
+            ]),
+            box_score,
+            broadcast
+        ]
+    elif _game_finished(game_details['_status']):
+        rows = [
+            summary,
+            _ghost_grid([
+                [labels, innings, totals]
+            ]),
+            box_score
+        ]
     else:
-        line_score = line_score_table(game_details)
-        rows.append(line_score)
-    rows.append(box_score)
-    rows.append(broadcast)
+        print(f"{game_details['_status']} is unexpected game status")
+        exit()
+
     print(tabulate.tabulate(
         [
             [x]
@@ -121,7 +143,7 @@ def summary_table(game_details, table_format='simple'):
     away_team = game_data['teams']['away']
     home_team = game_data['teams']['home']
 
-    if game_details['_status'] == IN_PROGRESS or 'delayed' in game_details['_status']:  # noqa: E501
+    if _game_live(game_details['_status']):
         line_score = game_details['liveData']['linescore']
         current_inning = line_score['currentInning']
         half = line_score['inningHalf']
@@ -133,14 +155,12 @@ def summary_table(game_details, table_format='simple'):
     format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
     format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
     format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else '-'  # noqa:E501
-    overview_rows = [
-        [f'{format_team(away_team)} @ {format_team(home_team)}'],
-        [f'{format_time} {format_venue}'],
-        [format_weather],
-        [game_status]
-    ]
-    return tabulate.tabulate(
-        overview_rows,
+    return tabulate.tabulate([
+            [f'{format_team(away_team)} @ {format_team(home_team)}'],
+            [f'{format_time} {format_venue}'],
+            [format_weather],
+            [game_status]
+        ],
         tablefmt=table_format
     )
 
@@ -308,7 +328,7 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
     )
 
 
-def line_score_table(game_details, table_format='fancy_grid'):
+def line_score_tables(game_details, table_format='fancy_grid'):
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
     line_score = live_data['linescore']
@@ -328,10 +348,11 @@ def line_score_table(game_details, table_format='fancy_grid'):
     # fill in innings that have data so far (work for final games as well)
     home_inning_scores = []
     away_inning_scores = []
-    placeholder = '-' if game_details['_status'] != 'final' else 'x'
-    if game_details['_status'] not in PREGAME_STATUSES:
+    placeholder = 'x' if _game_finished(game_details['_status']) else '-'
+    if not _game_pending(game_details['_status']):
         current_inning = int(line_score['currentInning'])
         is_top = line_score['inningHalf'].lower() == 'top'
+        inning_scores = inning_scores[0:current_inning]
         for inning in inning_scores:
             away_inning_scores.append(inning['away'].get('runs', 0))
             if inning['num'] == current_inning and is_top:
@@ -373,35 +394,44 @@ def line_score_table(game_details, table_format='fancy_grid'):
         tablefmt=table_format,
         numalign='right'
     )
+    return (labels, innings, totals)
+
+
+def bases_table(game_details):
+    return _ghost_grid(
+        [
+            [' ', ON, ' '],
+            [ON, '-', OFF],
+        ],
+        border=False
+    )
+
+
+def count_table(game_details):
+    live_data = game_details['liveData']
 
     def format_checks(label, num_checked, total):
-        checked = '▣'
-        unchecked = '□'
         return [label] + [
-            checked if x < num_checked else unchecked
+            ON if x < num_checked else OFF
             for x in range(0, total)
         ]
 
     current_play = live_data['plays'].get('currentPlay', {})
     current_count = current_play.get('count', {})
-    count = _ghost_grid(
+    return _ghost_grid(
         [
             format_checks('B', current_count.get('balls', 0), 4),
             format_checks('S', current_count.get('strikes', 0), 3),
             format_checks('O', current_count.get('outs', 0), 3)
         ],
         headers=[],
-        stralign='left'
-    )
-
-    return _ghost_grid(
-        [
-            [labels, innings, totals, count]
-        ]
+        stralign='left',
+        border=False
     )
 
 
-def _ghost_grid(table, headers=[], stralign='center', numalign='center'):
+def _ghost_grid(
+        table, headers=[], stralign='center', numalign='center', border=False):
     """
         Fix for nested tables when using "plain" format.
 
@@ -430,7 +460,26 @@ def _ghost_grid(table, headers=[], stralign='center', numalign='center'):
     for escape in escapes:
         grid_table = grid_table.replace(escape[0], ' ')
         grid_table = grid_table.replace(escape[1], escape[0])
+    if border:
+        return tabulate.tabulate(
+            [
+                [grid_table]
+            ],
+            tablefmt='grid'
+        )
     return grid_table
+
+
+def _game_pending(status):
+    return status in [SCHEDULED, PREGAME, WARMUP]
+
+
+def _game_live(status):
+    return status == IN_PROGRESS or 'delayed' in status
+
+
+def _game_finished(status):
+    return status == FINAL or 'completed' in status
 
 
 def find_game(day, team_id):
