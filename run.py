@@ -34,24 +34,20 @@ PICKLE_FILE = 'games.p'
 
 
 def main():
-    # cli args data
     args = _load_args()
-    team_arg = args.team
-    date_arg = args.date
-    save_data = args.save
-    load_data = args.load
-
-    # get raw game data
-    if load_data:
-        game_details = _load_game_data(load_data)
+    command = args.command
+    if command == 'load':
+        game_details = _load_game_data(args.name)
     else:
-        team = _find_team(team_arg)
-        game = _find_game(date_arg, team['id'])
+        team = _find_team(args.team)
+        game = _find_game(args.date, team['id'])
         game_details = _find_game_details(game)
-        if save_data:
-            _save_game_data(save_data, game_details)
+        if command == 'save':
+            _save_game_data(args.name, game_details)
+    _print_tables(game_details)
 
-    # format data into tables
+
+def _print_tables(game_details):
     summary = summary_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
@@ -496,10 +492,9 @@ def _find_game_details(game):
 
 
 def _save_game_data(name, data):
-    # pickle.dump({}, open(PICKLE_FILE, 'wb'))
     games = pickle.load(open(PICKLE_FILE, 'rb'))
     if name in games:
-        raise Exception(f'Game named "{name}" already exists in saved data!')
+        exit(f'Game named "{name}" already exists in saved data!')
     games[name] = data
     pickle.dump(games, open(PICKLE_FILE, 'wb'))
 
@@ -507,40 +502,40 @@ def _save_game_data(name, data):
 def _load_game_data(name):
     games = pickle.load(open(PICKLE_FILE, 'rb'))
     if name not in games:
-        raise Exception(f'Unable to find game named "{name}" in saved data!')
+        print('\n'.join([x for x in games.keys()]))
+        if name:
+            exit(f'Unable to find game named "{name}" in saved data!')
+        else:
+            exit()
     return games[name]
 
 
 def _load_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--team',
-        required=False,
-        help='team to find game for')
-    parser.add_argument(
-        '--date',
-        required=False,
-        help='YYYY-MM-DD date to find game for')
-    parser.add_argument(
-        '--save',
-        required=False,
+
+    subparsers = parser.add_subparsers(dest='command')
+    parser_query = subparsers.add_parser('query')
+    parser_save = subparsers.add_parser('save')
+    parser_load = subparsers.add_parser('load')
+    for each in [parser_save, parser_query]:
+        each.add_argument(
+            '--team',
+            required=True,
+            help='team to find game for')
+        each.add_argument(
+            '--date',
+            required=False,
+            default=datetime.date.today(),
+            help='YYYY-MM-DD date to find game for, default today')
+    parser_save.add_argument(
+        '--name',
+        required=True,
         help='Save raw game data with input name to test with later')
-    parser.add_argument(
-        '--load',
+    parser_load.add_argument(
+        '--name',
         required=False,
         help='Load raw game data with input name instead of querying')
     args = parser.parse_args()
-
-    # validate arg combinations
-    if args.load and (args.team or args.date or args.save):
-        exit('Cannot use --load with other args')
-    if args.save and args.load:
-        exit('Cannot use --save with --load')
-    if not args.team and not args.load:
-        exit('Must specify --team')
-    if not args.date:
-        args.date = datetime.date.today(),
-
     return args
 
 
