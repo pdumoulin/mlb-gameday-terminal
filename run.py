@@ -519,6 +519,14 @@ def _load_game_data(name):
     return games[name]
 
 
+def _delete_game_data(name):
+    games = pickle.load(open(PICKLE_FILE, 'rb'))
+    if name not in games:
+        exit(f'Unable to find game named "{name}" in saved data!')
+    del games[name]
+    pickle.dump(games, open(PICKLE_FILE, 'wb'))
+
+
 def _load_args():
     parser = argparse.ArgumentParser()
 
