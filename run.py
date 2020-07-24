@@ -198,7 +198,8 @@ def box_score_table(game_details, allow_empty=False):
         active_players = [x for _, x in players.items() if 'battingOrder' in x]
         return sorted(active_players, key=lambda k: k['battingOrder'])
 
-    batter_id = live_data['linescore']['offense']['batter']['id']
+    offense = live_data['linescore']['offense'].get('batter', {})
+    batter_id = offense.get('id', None)
     away_lineup = lineup('away', box_score)
     home_lineup = lineup('home', box_score)
     if not allow_empty and not away_lineup and not home_lineup:
