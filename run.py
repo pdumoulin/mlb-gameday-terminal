@@ -15,15 +15,8 @@ tabulate.PRESERVE_WHITESPACE = True
 # TODO - docstrings
 # latest play
 
-SCHEDULED = 'scheduled'
-PREGAME = 'pre-game'
-WARMUP = 'warmup'
-IN_PROGRESS = 'in progress'
-FINAL = 'final'
-
 ON = '▣'
 OFF = '□'
-
 PICKLE_FILE = 'games.p'
 
 
@@ -450,15 +443,22 @@ def _ghost_grid(
 
 
 def _game_pending(status):
-    return status in [SCHEDULED, PREGAME, WARMUP]
+    return _check_status(status, ['scheduled', 'pre-game', 'warmup'])
 
 
 def _game_live(status):
-    return status == IN_PROGRESS or 'delayed' in status
+    return _check_status(status, ['in progress'], ['delayed', 'challenge'])
 
 
 def _game_finished(status):
-    return status == FINAL or 'completed' in status
+    return _check_status(status, ['final'], ['completed'])
+
+
+def _check_status(status, in_statuses, in_partials=[]):
+    for partial in in_partials:
+        if status.startswith(partial):
+            return True
+    return status in in_statuses
 
 
 def _find_team(term):
