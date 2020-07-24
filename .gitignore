@@ -1,4 +1,3 @@
 *.swp
 env/
-teams.py
 __pycache__

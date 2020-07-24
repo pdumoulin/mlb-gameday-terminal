@@ -7,11 +7,7 @@ import requests
 
 import tabulate
 
-try:
-    from teams import TEAMS
-except ModuleNotFoundError:
-    print('Did you run "fetch_team_ids.py" - see README')
-    exit()
+from teams import TEAMS
 
 tabulate.PRESERVE_WHITESPACE = True
 # TODO - update README for team ID script
