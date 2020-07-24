@@ -1,6 +1,7 @@
 
 import argparse
 import datetime
+import pickle
 
 import requests
 
@@ -9,8 +10,6 @@ import tabulate
 from teams import TEAMS
 
 tabulate.PRESERVE_WHITESPACE = True
-# TODO - commit fixtures in single file / add CLI to append to it
-
 # TODO - update README for team ID script
 
 # TODO - screenshots for README
@@ -31,59 +30,28 @@ FINAL = 'final'
 ON = '▣'
 OFF = '□'
 
+PICKLE_FILE = 'games.p'
+
 
 def main():
     # cli args data
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '--team',
-        required=True,
-        help='team to find game for')
-    parser.add_argument(
-        '--date',
-        required=False,
-        default=datetime.date.today(),
-        help='YYYY-MM-DD date to find game for')
-    args = parser.parse_args()
+    args = _load_args()
     team_arg = args.team
     date_arg = args.date
+    save_data = args.save
+    load_data = args.load
 
-    # find team id based on pre-fetched config data
-    teams = [
-        x for x in TEAMS
-        if team_arg in x['name'].lower() or team_arg in x['abbr'].lower()
-    ]
-    if not teams:
-        exit(f'Could not find team using search term "{team_arg}"')
-    elif len(teams) > 1:
-        matches = [f"{x['name']} ({x['abbr']})" for x in teams]
-        exit(f'Matched too many teams with search term "{team_arg}" => {matches}')  # noqa:E501
-    team = teams[0]
+    # get raw game data
+    if load_data:
+        game_details = _load_game_data(load_data)
+    else:
+        team = _find_team(team_arg)
+        game = _find_game(date_arg, team['id'])
+        game_details = _find_game_details(game)
+        if save_data:
+            _save_game_data(save_data, game_details)
 
-    # find game for team-date combo
-    game = find_game(date_arg, team['id'])
-    if not game:
-        exit(f"Unable to find game on {date_arg} for {team['name']}")
-
-    # get details about game
-    game_details = game_data(game['gamePk'])
-
-    # pull out game status for easy access elsewhere
-    game_details['_status'] = game_details['gameData']['status']['detailedState'].lower()  # noqa:E501
-
-    # merge in data that only exists from game schedule call
-    languages = ['en']
-    game_details['broadcasts'] = [
-        x
-        for x in game['broadcasts']
-        if x['language'].lower() in languages
-    ]
-
-    # uncomment to output raw data for later testing
-    # print(game_details)
-    # exit()
-
-    # tables to display
+    # format data into tables
     summary = summary_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
@@ -92,6 +60,7 @@ def main():
     bases = bases_table(game_details)
     count = count_table(game_details)
 
+    # arrange tables into rows based on game status
     rows = []
     if _game_pending(game_details['_status']):
         rows = [
@@ -111,8 +80,8 @@ def main():
         ]
     elif _game_finished(game_details['_status']):
         rows = [
-            summary,
             _ghost_grid([
+                ['', summary, ''],
                 [labels, innings, totals]
             ]),
             box_score
@@ -121,6 +90,7 @@ def main():
         print(f"{game_details['_status']} is unexpected game status")
         exit()
 
+    # print the final output of tables
     print(tabulate.tabulate(
         [
             [x]
@@ -481,7 +451,20 @@ def _game_finished(status):
     return status == FINAL or 'completed' in status
 
 
-def find_game(day, team_id):
+def _find_team(term):
+    teams = [
+        x for x in TEAMS
+        if term in x['name'].lower() or term in x['abbr'].lower()
+    ]
+    if not teams:
+        exit(f'Could not find team using search term "{term}"')
+    elif len(teams) > 1:
+        matches = [f"{x['name']} ({x['abbr']})" for x in teams]
+        exit(f'Matched too many teams with search term "{term}" => {matches}')  # noqa:E501
+    return teams[0]
+
+
+def _find_game(day, team_id):
     url = 'https://statsapi.mlb.com/api/v1/schedule'
     params = {
         'date': day,
@@ -494,14 +477,71 @@ def find_game(day, team_id):
     data = response.json()
     dates = data.get('dates', [])
     if not dates:
-        return None
+        exit(f'Unable to find game on {day} for team')
     return dates[0]['games'][-1]
 
 
-def game_data(game_id):
+def _find_game_details(game):
+    game_id = game['gamePk']
     url = f'https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live'
     response = requests.get(url)
-    return response.json()
+    details = response.json()
+    details['_status'] = details['gameData']['status']['detailedState'].lower()  # noqa:E501
+    details['broadcasts'] = [
+        x
+        for x in game['broadcasts']
+        if x['language'].lower() in ['en']
+    ]
+    return details
+
+
+def _save_game_data(name, data):
+    # pickle.dump({}, open(PICKLE_FILE, 'wb'))
+    games = pickle.load(open(PICKLE_FILE, 'rb'))
+    if name in games:
+        raise Exception(f'Game named "{name}" already exists in saved data!')
+    games[name] = data
+    pickle.dump(games, open(PICKLE_FILE, 'wb'))
+
+
+def _load_game_data(name):
+    games = pickle.load(open(PICKLE_FILE, 'rb'))
+    if name not in games:
+        raise Exception(f'Unable to find game named "{name}" in saved data!')
+    return games[name]
+
+
+def _load_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--team',
+        required=False,
+        help='team to find game for')
+    parser.add_argument(
+        '--date',
+        required=False,
+        help='YYYY-MM-DD date to find game for')
+    parser.add_argument(
+        '--save',
+        required=False,
+        help='Save raw game data with input name to test with later')
+    parser.add_argument(
+        '--load',
+        required=False,
+        help='Load raw game data with input name instead of querying')
+    args = parser.parse_args()
+
+    # validate arg combinations
+    if args.load and (args.team or args.date or args.save):
+        exit('Cannot use --load with other args')
+    if args.save and args.load:
+        exit('Cannot use --save with --load')
+    if not args.team and not args.load:
+        exit('Must specify --team')
+    if not args.date:
+        args.date = datetime.date.today(),
+
+    return args
 
 
 if __name__ == '__main__':
