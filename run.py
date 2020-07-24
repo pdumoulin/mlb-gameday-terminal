@@ -218,6 +218,9 @@ def box_score_table(game_details, allow_empty=False):
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
 
+    home_team = box_score['teams']['home']['team']['name']
+    away_team = box_score['teams']['away']['team']['name']
+
     def lineup(team, box_score):
         players = box_score['teams'][team]['players']
         active_players = [x for _, x in players.items() if 'battingOrder' in x]
@@ -238,6 +241,8 @@ def box_score_table(game_details, allow_empty=False):
                 box_score_pitching_table('home', live_data)
             ]
         ],
+        headers=[away_team, home_team],
+        stralign='center',
         tablefmt='fancy_grid'
     )
 
