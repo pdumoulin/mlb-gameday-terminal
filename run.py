@@ -390,11 +390,14 @@ def count_table(game_details):
 
     current_play = live_data['plays'].get('currentPlay', {})
     current_count = current_play.get('count', {})
+    outs = current_count.get('outs', 0)
+    strikes = current_count.get('strikes', 0) if outs != 3 else 0
+    balls = current_count.get('balls', 0) if outs != 3 else 0
     return _ghost_grid(
         [
-            format_checks('B', current_count.get('balls', 0), 4),
-            format_checks('S', current_count.get('strikes', 0), 3),
-            format_checks('O', current_count.get('outs', 0), 3)
+            format_checks('B', balls, 4),
+            format_checks('S', strikes, 3),
+            format_checks('O', outs, 3)
         ],
         headers=[],
         stralign='left',
