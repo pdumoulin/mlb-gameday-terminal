@@ -10,10 +10,11 @@ import tabulate
 from teams import TEAMS
 
 tabulate.PRESERVE_WHITESPACE = True
+
 # TODO - screenshots for README
 # TODO - how would a double header look?
-# TODO - docstrings
-# latest play
+# TODO - docstrings and split modules
+# TODO - check pregame not showing records accurately
 
 ON = '▣'
 OFF = '□'
@@ -102,6 +103,7 @@ def summary_table(game_details, table_format='simple'):
         game_status += f' - {half} {current_inning}'
 
     def format_team(team):
+        # TODO - handle zeros for W/L
         return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
 
     format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
