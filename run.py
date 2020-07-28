@@ -19,6 +19,11 @@ tabulate.PRESERVE_WHITESPACE = True
 ON = '▣'
 OFF = '□'
 PICKLE_FILE = 'games.p'
+GAME_STATUSES = {
+    'pending': ['scheduled', 'pre-game', 'warmup', 'postponed'],
+    'live': ['in progress', 'delayed', 'challenge'],
+    'finished': ['final', 'game over', 'completed']
+}
 
 
 def main():
@@ -284,7 +289,8 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
             for x in pitchers
         ],
         headers=['Name', 'IP', 'H', 'R', 'ER', 'BB', 'SO'],
-        tablefmt=table_format
+        tablefmt=table_format,
+        floatfmt='.1f'
     )
 
 
@@ -449,22 +455,20 @@ def _ghost_grid(
 
 
 def _game_pending(status):
-    return _check_status(status, ['scheduled', 'pre-game', 'warmup'])
+    return _check_status(status, 'pending')
 
 
 def _game_live(status):
-    return _check_status(status, ['in progress'], ['delayed', 'challenge'])
+    return _check_status(status, 'live')
 
 
 def _game_finished(status):
-    return _check_status(status, ['final', 'game over'], ['completed'])
+    return _check_status(status, 'finished')
 
 
-def _check_status(status, in_statuses, in_partials=[]):
-    for partial in in_partials:
-        if status.startswith(partial):
-            return True
-    return status in in_statuses
+def _check_status(status, target_status):
+    status = status.split(':')[0]
+    return status in GAME_STATUSES[target_status]
 
 
 def _find_team(term):
