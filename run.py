@@ -15,6 +15,7 @@ tabulate.PRESERVE_WHITESPACE = True
 # TODO - how would a double header look?
 # TODO - docstrings and split modules
 # TODO - check pregame not showing records accurately
+# TODO - check ERA output on probably pitchers
 
 ON = '▣'
 OFF = '□'
@@ -108,7 +109,6 @@ def summary_table(game_details, table_format='simple'):
         game_status += f' - {half} {current_inning}'
 
     def format_team(team):
-        # TODO - handle zeros for W/L
         return f"{team['name']} ({team['record']['wins']} - {team['record']['losses']})"  # noqa:E501
 
     format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
