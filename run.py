@@ -189,7 +189,8 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
             'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'
         ],
         tablefmt=table_format,
-        numalign='center'
+        numalign='center',
+        floatfmt=('', '', '', '.1f', '', '', '', '.2f', '', '')
     )
 
 
