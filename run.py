@@ -14,8 +14,6 @@ tabulate.PRESERVE_WHITESPACE = True
 # TODO - screenshots for README
 # TODO - how would a double header look?
 # TODO - docstrings and split modules
-# TODO - check pregame not showing records accurately
-# TODO - check ERA output on probably pitchers
 
 ON = '▣'
 OFF = '□'
