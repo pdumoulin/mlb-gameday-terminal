@@ -18,6 +18,8 @@ tabulate.PRESERVE_WHITESPACE = True
 ON = '▣'
 OFF = '□'
 PICKLE_FILE = 'games.p'
+
+# TODO - handle postponed games on their own? no pitchers?
 GAME_STATUSES = {
     'pending': ['scheduled', 'pre-game', 'warmup', 'postponed'],
     'live': ['in progress', 'delayed', 'challenge'],
@@ -29,14 +31,14 @@ def main():
     args = _load_args()
     command = args.command
     if command == 'load':
-        game_details = _load_game_data(args.name)
+        games = _load_game_data(args.name)
     else:
         team = _find_team(args.team)
-        game = _find_game(args.date, team['id'])
-        game_details = _find_game_details(game)
+        games = _find_games(args.date, team['id'])
         if command == 'save':
-            _save_game_data(args.name, game_details)
-    _print_tables(game_details)
+            _save_game_data(args.name, games)
+    for game in games:
+        _print_tables(game)
 
 
 def _print_tables(game_details):
@@ -483,7 +485,7 @@ def _find_team(term):
     return teams[0]
 
 
-def _find_game(day, team_id):
+def _find_games(day, team_id):
     url = 'https://statsapi.mlb.com/api/v1/schedule'
     params = {
         'date': day,
@@ -497,7 +499,7 @@ def _find_game(day, team_id):
     dates = data.get('dates', [])
     if not dates:
         exit(f'Unable to find game on {day} for team')
-    return dates[0]['games'][-1]
+    return [_find_game_details(x) for x in dates[0]['games']]
 
 
 def _find_game_details(game):
