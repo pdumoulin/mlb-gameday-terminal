@@ -1,3 +1,6 @@
+"""Terminal GameDay."""
+
+# TODO - add some screenshots in README
 
 import argparse
 import datetime
@@ -9,26 +12,30 @@ import tabulate
 
 from teams import TEAMS
 
+# tables play nicer when nesting
 tabulate.PRESERVE_WHITESPACE = True
 
-# TODO - screenshots for README
-# TODO - docstrings and split modules
-
+# markers for base runners and count
 ON = '▣'
 OFF = '□'
+
+# file to save/load game data for offline access
 PICKLE_FILE = 'games.p'
 
-# TODO - handle postponed games on their own? no pitchers?
+# groups of game status to determine output format
 GAME_STATUSES = {
-    'pending': ['scheduled', 'pre-game', 'warmup', 'postponed'],
+    'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start'],  # noqa:E501
     'live': ['in progress', 'delayed', 'challenge'],
     'finished': ['final', 'game over', 'completed']
 }
 
 
 def main():
+    """Overall flow control."""
     args = _load_args()
     command = args.command
+
+    # parse commands and load games
     if command == 'load':
         games = _load_game_data(args.name)
     else:
@@ -37,10 +44,16 @@ def main():
         if command == 'save':
             _save_game_data(args.name, games)
 
+    # max 2 games in one day, same sort as API response
+    games = games[:2]
+
+    # generate rows of data from each game
     final_rows = []
     for game in games:
         for row in _game_rows(game):
             final_rows.append([row])
+
+    # print all game rows together in one table
     print(tabulate.tabulate(
         final_rows,
         tablefmt='plain',
@@ -91,6 +104,7 @@ def _game_rows(game_details):
 
 
 def summary_table(game_details, table_format='simple'):
+    """Text overview of game."""
     game_data = game_details['gameData']
 
     game_status = game_data['status']['detailedState']
@@ -124,6 +138,7 @@ def summary_table(game_details, table_format='simple'):
 
 
 def broadcast_table(game_details, table_format='simple'):
+    """Text details of TV and Radio broadcasts."""
     broadcasts = game_details['broadcasts']
 
     def format_broadcast(medium):
@@ -151,6 +166,7 @@ def broadcast_table(game_details, table_format='simple'):
 
 
 def probable_pitchers_table(game_details, table_format='fancy_grid'):
+    """Table of probably pitchers and their stats overview."""
     game_data = game_details['gameData']
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
@@ -194,6 +210,7 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
 
 
 def box_score_table(game_details, allow_empty=False):
+    """Table box score of both teams, hitting and pitching."""
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
 
@@ -229,6 +246,7 @@ def box_score_table(game_details, allow_empty=False):
 
 
 def box_score_batting_table(lineup, current_batter, table_format='simple'):
+    """Table of batting box score for one team."""
     def display_order(batter):
         batting_order = int(batter['battingOrder'])
         if not batting_order % 100:
@@ -260,6 +278,7 @@ def box_score_batting_table(lineup, current_batter, table_format='simple'):
 
 
 def box_score_pitching_table(team, live_data, table_format='simple'):
+    """Table of pitching box score for one team."""
     # parse live events to find pitchers in game order
     plays = live_data['plays']['allPlays']
     pitcher_ids = {
@@ -295,6 +314,7 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
 
 
 def line_score_tables(game_details, table_format='fancy_grid'):
+    """Table for top per-inning score."""
     live_data = game_details['liveData']
     box_score = live_data['boxscore']
     line_score = live_data['linescore']
@@ -374,6 +394,7 @@ def line_score_tables(game_details, table_format='fancy_grid'):
 
 
 def bases_table(game_details):
+    """Diamond for base runners."""
     live_data = game_details['liveData']
     offense = live_data['linescore']['offense']
     first = ON if 'first' in offense else OFF
@@ -389,6 +410,7 @@ def bases_table(game_details):
 
 
 def count_table(game_details):
+    """Batting count."""
     live_data = game_details['liveData']
 
     def format_checks(label, num_checked, total):
@@ -416,11 +438,10 @@ def count_table(game_details):
 
 def _ghost_grid(
         table, headers=[], stralign='center', numalign='center', border=False):
-    """
-        Fix for nested tables when using "plain" format.
+    """Fix for nested tables when using "plain" format.
 
-        Escape table delimiter characters, format using "grid" format
-        then replace esaped chacaters to get invisible grid layout.
+    Escape table delimiter characters, format using "grid" format
+    then replace esaped chacaters to get invisible grid layout.
     """
     escapes = [
         ('-', '‡'),
