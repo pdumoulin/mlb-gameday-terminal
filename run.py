@@ -12,7 +12,6 @@ from teams import TEAMS
 tabulate.PRESERVE_WHITESPACE = True
 
 # TODO - screenshots for README
-# TODO - how would a double header look?
 # TODO - docstrings and split modules
 
 ON = '▣'
@@ -37,11 +36,19 @@ def main():
         games = _find_games(args.date, team['id'])
         if command == 'save':
             _save_game_data(args.name, games)
+
+    final_rows = []
     for game in games:
-        _print_tables(game)
+        for row in _game_rows(game):
+            final_rows.append([row])
+    print(tabulate.tabulate(
+        final_rows,
+        tablefmt='plain',
+        stralign='center'
+    ))
 
 
-def _print_tables(game_details):
+def _game_rows(game_details):
     summary = summary_table(game_details)
     box_score = box_score_table(game_details)
     broadcast = broadcast_table(game_details)
@@ -80,15 +87,7 @@ def _print_tables(game_details):
         print(f"{game_details['_status']} is unexpected game status")
         exit()
 
-    # print the final output of tables
-    print(tabulate.tabulate(
-        [
-            [x]
-            for x in rows
-        ],
-        tablefmt='plain',
-        stralign='center'
-    ))
+    return rows
 
 
 def summary_table(game_details, table_format='simple'):
