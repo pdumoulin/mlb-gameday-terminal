@@ -1,5 +1,7 @@
 # mlb-gameday-terminal
 
+![Final Game Output Screenshot](/screenshots/game_final.png?raw=true)
+
 ## Install Requirements
 1. Create virtual env
 ```

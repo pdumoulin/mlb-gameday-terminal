@@ -1,7 +1,5 @@
 """Terminal GameDay."""
 
-# TODO - add some screenshots in README
-
 import argparse
 import datetime
 import pickle
