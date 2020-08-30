@@ -51,6 +51,8 @@ def main():
     if args.select == SELECT_FIRST:
         games = [games[0]]
     elif args.select == SELECT_SECOND:
+        if len(games) < 2:
+            exit('No second game found.')
         games = [games[1]]
     elif args.select == SELECT_ALL:
         games = games[:2]
