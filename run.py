@@ -27,6 +27,11 @@ GAME_STATUSES = {
     'finished': ['final', 'game over', 'completed']
 }
 
+# options to filter games list
+SELECT_ALL = 'all'
+SELECT_FIRST = 'first'
+SELECT_SECOND = 'second'
+
 
 def main():
     """Overall flow control."""
@@ -42,8 +47,13 @@ def main():
         if command == 'save':
             _save_game_data(args.name, games)
 
-    # max 2 games in one day, same sort as API response
-    games = games[:2]
+    # max 2 games in one day, same sort order as API response
+    if args.select == SELECT_FIRST:
+        games = [games[0]]
+    elif args.select == SELECT_SECOND:
+        games = [games[1]]
+    elif args.select == SELECT_ALL:
+        games = games[:2]
 
     # generate rows of data from each game
     final_rows = []
@@ -578,6 +588,14 @@ def _load_args():
             required=False,
             default=datetime.date.today(),
             help='YYYY-MM-DD date to find game for, default today')
+    for each in [parser_query, parser_load]:
+        each.add_argument(
+            '--select',
+            required=False,
+            default='all',
+            choices=[SELECT_ALL, SELECT_FIRST, SELECT_SECOND],
+            help='filter games list'
+        )
     parser_save.add_argument(
         '--name',
         required=True,

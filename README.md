@@ -57,13 +57,14 @@ $ python run.py load --name pete-alonso
 
 ### Query
 ```
-python run.py query --help
-usage: run.py query [-h] --team TEAM [--date DATE]
+usage: run.py query [-h] --team TEAM [--date DATE] [--select {all,first,second}]
 
 optional arguments:
-  -h, --help   show this help message and exit
-  --team TEAM  team to find game for
-  --date DATE  YYYY-MM-DD date to find game for, default today
+  -h, --help            show this help message and exit
+  --team TEAM           team to find game for
+  --date DATE           YYYY-MM-DD date to find game for, default today
+  --select {all,first,second}
+                        filter games list
 ```
 
 ### Save
@@ -86,4 +87,6 @@ usage: run.py load [-h] [--name NAME]
 optional arguments:
   -h, --help   show this help message and exit
   --name NAME  Load raw game data with input name instead of querying
+  --select {all,first,second}
+                        filter games list
 ```
