@@ -584,7 +584,7 @@ def _load_args():
         each.add_argument(
             '--team',
             required=True,
-            help='team to find game for')
+            help='team search term partical match for name, location, or abbreviation')  # noqa: E501
         each.add_argument(
             '--date',
             required=False,

@@ -1,8 +1,19 @@
-# mlb-gameday-terminal
+# :baseball: mlb-gameday-terminal :baseball:
 
 ![Final Game Output Screenshot](/screenshots/game_final.png?raw=true)
 
+## Quickstart
+1. Get live data
+```
+run.sh nym
+```
+2. Watch live data, updated every minute
+```
+run.sh nym 60
+```
+:information_source: You can search for a team by any term that partially matches exactly one team by either name, location, or abbreviation.
 ## Install Requirements
+**If you ran quickstart script, this was done already.**
 1. Create virtual env
 ```
 $ python -m venv env
@@ -61,7 +72,7 @@ usage: run.py query [-h] --team TEAM [--date DATE] [--select {all,first,second}]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --team TEAM           team to find game for
+  --team TEAM           team search term partical match for name, location, or abbreviation
   --date DATE           YYYY-MM-DD date to find game for, default today
   --select {all,first,second}
                         filter games list
@@ -74,7 +85,7 @@ usage: run.py save [-h] --team TEAM [--date DATE] --name NAME
 
 optional arguments:
   -h, --help   show this help message and exit
-  --team TEAM  team to find game for
+  --team TEAM  team search term partical match for name, location, or abbreviation
   --date DATE  YYYY-MM-DD date to find game for, default today
   --name NAME  Save raw game data with input name to test with later
 ```
