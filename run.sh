@@ -42,7 +42,7 @@ function setup_venv {
 
 # verify requirements are installed
 function package_diff {
-    diff <(cat requirements.txt | grep -v "^pip==") <(pip list --not-required --disable-pip-version-check --format freeze | grep -v "^pip==" | grep -v "^setuptools")
+    diff <(cat requirements.txt | grep -v "^pip==") <(pip list --not-required --disable-pip-version-check --format freeze | grep -v "^pip==" | grep -v "^setuptools==" | grep -v "^pkg-resources==")
 }
 
 # setup proper requirements strictly
