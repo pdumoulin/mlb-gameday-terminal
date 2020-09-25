@@ -101,7 +101,7 @@ function main {
     if [ -z "$REFRESH" ]; then
         python run.py query --team $TEAM
     else
-        watch -d -n $REFRESH python run.py query --team $TEAM
+        watch -t -d -n $REFRESH python run.py query --team $TEAM
     fi
 }
 main "$@"

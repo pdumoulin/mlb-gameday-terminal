@@ -41,7 +41,7 @@ $ python run.py query --team nym --date 2019-09-27
 ```
 ### Auto Update
 ```
-$ watch -d -n 60 "python run.py query --team nym"
+$ watch -t -d -n 60 "python run.py query --team nym"
 ```
 ## Update Teams List
 By default teams with the names, abbreviations, and IDs are stored in `teams.py`. In the unlikely event you need to update that list, run the following...
