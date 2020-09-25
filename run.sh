@@ -69,6 +69,10 @@ function setup_packages {
     fi
 }
 
+function hard_clear {
+    clear && printf '\e[3J'
+}
+
 # main execution loop
 function main {
 
@@ -82,7 +86,7 @@ function main {
     fi
 
     # flush terminal
-    clear
+    hard_clear
 
     # create and/or activate venv
     setup_venv
@@ -91,7 +95,7 @@ function main {
     setup_packages
 
     # flush terminal
-    clear
+    hard_clear
 
     # run script (optionally watch)
     if [ -z "$REFRESH" ]; then
