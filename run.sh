@@ -1,37 +1,43 @@
 #!/bin/bash
 
-# startup
+# startup and global vars
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+ENV_NAME="env"
 cd $DIR
+
+# cleanup and exit script
+function cleanup {
+    if [ "$VIRTUAL_ENV" != "" ] && [ "$VIRTUAL_ENV" == "$DIR/$ENV_NAME" ]; then
+        deactivate > /dev/null 2>&1
+    fi
+    cd - > /dev/null
+    exit $1
+}
 
 # create venv if does not exist
 function setup_venv {
-    env_name="env"
+    echo 'Setting up venv...'
 
     # make sure we're not in another venv
-    if [ "$VIRTUAL_ENV" != "" ] && [ "$VIRTUAL_ENV" != "$DIR/$env_name" ]; then
-        echo 'Unexpected venv set...'
-        exit 1
+    if [ "$VIRTUAL_ENV" != "" ]; then
+        echo 'Error venv already activated...'
+        echo $VIRTUAL_ENV
+        cleanup 1
     fi
 
     # create venv if not exists
-    if [ ! -d "$env_name" ]; then
+    if [ ! -d "$ENV_NAME" ]; then
         echo "Creating venv..."
         pip_version=$(cat requirements.txt | grep "^pip==")
-        python -m venv $env_name && source env/bin/activate && pip install $pip_version
+        python -m venv $ENV_NAME && source env/bin/activate && pip install $pip_version
         if [ $? -ne 0 ]; then
             echo 'Error during venv create...'
-            if [ "$VIRTUAL_ENV" != "" ]; then
-                deactivate
-            fi
-            exit 1
+            cleanup 1
         fi
     fi
 
     # activate venv
-    if [[ "$VIRTUAL_ENV" == "" ]]; then
-        source env/bin/activate
-    fi
+    source env/bin/activate
 }
 
 # verify requirements are installed
@@ -48,13 +54,16 @@ function setup_packages {
         pip install -r requirements.txt
         if [ $? -ne 0 ]; then
             echo 'Error during package install...'
-            exit 1
+            cleanup 1
         else
             pdiff=$(package_diff)
             if [ "$pdiff" != "" ]; then
                 echo 'Package mis-match after install...'
                 echo $pdiff
-                exit 1
+                echo 'Removing venv...'
+                rm -R $ENV_NAME
+                echo 'Try again'
+                cleanup 1
             fi
         fi
     fi
@@ -69,7 +78,7 @@ function main {
     # make sure team is set
     if [ -z "$TEAM" ]; then
         echo 'Team must be set as $1'
-        exit 1
+        cleanup 1
     fi
 
     # flush terminal
@@ -92,9 +101,4 @@ function main {
     fi
 }
 main "$@"
-
-# cleanup
-if [[ "$VIRTUAL_ENV" != "" ]]; then
-    deactivate
-fi
-cd - > /dev/null
+cleanup 0
