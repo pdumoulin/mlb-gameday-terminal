@@ -99,9 +99,9 @@ function main {
 
     # run script (optionally watch)
     if [ -z "$REFRESH" ]; then
-        python run.py query --team $TEAM
+        python run.py query --team $TEAM --select smart
     else
-        watch -t -d -n $REFRESH python run.py query --team $TEAM
+        watch -t -d -n $REFRESH python run.py query --team $TEAM --select smart
     fi
 }
 main "$@"

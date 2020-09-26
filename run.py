@@ -31,6 +31,7 @@ GAME_STATUSES = {
 SELECT_ALL = 'all'
 SELECT_FIRST = 'first'
 SELECT_SECOND = 'second'
+SELECT_SMART = 'smart'
 
 
 def main():
@@ -47,21 +48,18 @@ def main():
         if command == 'save':
             _save_game_data(args.name, games)
 
-    # max 2 games in one day, same sort order as API response
-    if args.select == SELECT_FIRST:
-        games = [games[0]]
-    elif args.select == SELECT_SECOND:
-        if len(games) < 2:
-            exit('No second game found.')
-        games = [games[1]]
-    elif args.select == SELECT_ALL:
-        games = games[:2]
+    # handle double headers
+    filtered_games = _select_games(args.select, games)
 
     # generate rows of data from each game
     final_rows = []
-    for game in games:
+    for game in filtered_games:
         for row in _game_rows(game):
             final_rows.append([row])
+
+    # warn if double-header but only showing one
+    if len(filtered_games) != len(games):
+        final_rows.append(['* Not all games visible: change select arg to see all *'])  # noqa: E501
 
     # print all game rows together in one table
     print(tabulate.tabulate(
@@ -69,6 +67,27 @@ def main():
         tablefmt='plain',
         stralign='center'
     ))
+
+
+def _select_games(select, games):
+    # take only first 2 games, sometimes there is excess data
+    games = games[:2]
+    if len(games) == 1:
+        return games
+    if select == SELECT_FIRST:
+        return [games[0]]
+    elif select == SELECT_SECOND:
+        if len(games) < 2:
+            exit('No second game found.')
+        return [games[1]]
+    elif select == SELECT_SMART:
+        for game in games:
+            if _game_live(game['_status']):
+                return [game]
+        for game in games:
+            if _game_pending(game['_status']):
+                return [game]
+    return games
 
 
 def _game_rows(game_details):
@@ -594,8 +613,13 @@ def _load_args():
         each.add_argument(
             '--select',
             required=False,
-            default='all',
-            choices=[SELECT_ALL, SELECT_FIRST, SELECT_SECOND],
+            default=SELECT_ALL,
+            choices=[
+                SELECT_ALL,
+                SELECT_FIRST,
+                SELECT_SECOND,
+                SELECT_SMART
+            ],
             help='filter games list'
         )
     parser_save.add_argument(
