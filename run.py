@@ -45,6 +45,8 @@ def main():
     else:
         team = _find_team(args.team)
         games = _find_games(args.date, team['id'])
+        if not games:
+            exit(f'Unable to find game on {args.date} for team {args.team}')
         if command == 'save':
             _save_game_data(args.name, games)
 
@@ -547,7 +549,7 @@ def _find_games(day, team_id):
     data = response.json()
     dates = data.get('dates', [])
     if not dates:
-        exit(f'Unable to find game on {day} for team')
+        return []
     return [_find_game_details(x) for x in dates[0]['games']]
 
 
