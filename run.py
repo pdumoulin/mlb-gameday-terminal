@@ -6,16 +6,17 @@ import pickle
 
 import requests
 
-import tabulate
+from rich import box
+from rich.align import Align
+from rich.console import Console
+from rich.table import Table
 
 from teams import TEAMS
 
-# tables play nicer when nesting
-tabulate.PRESERVE_WHITESPACE = True
-
 # markers for base runners and count
-ON = '▣'
-OFF = '□'
+# https://github.com/willmcgugan/rich/blob/master/rich/_emoji_codes.py
+ON = ':black_medium_square:'
+OFF = ':white_medium_square:'
 
 # file to save/load game data for offline access
 PICKLE_FILE = 'games.p'
@@ -24,7 +25,7 @@ PICKLE_FILE = 'games.p'
 GAME_STATUSES = {
     'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start'],  # noqa:E501
     'live': ['in progress', 'delayed', 'challenge'],
-    'finished': ['final', 'game over', 'completed']
+    'finished': ['final', 'game over', 'completed', 'completed early']
 }
 
 # options to filter games list
@@ -56,19 +57,20 @@ def main():
     # generate rows of data from each game
     final_rows = []
     for game in filtered_games:
-        for row in _game_rows(game):
-            final_rows.append([row])
+        final_rows += _game_rows(game)
+
+    # add all rows in grid, centered
+    grid = Table.grid()
+    for x in final_rows:
+        grid.add_row(Align.center(x))
+
+    # print to console
+    console = Console()
+    console.print(grid, justify='center')
 
     # warn if double-header but only showing one
     if len(filtered_games) != len(games):
         final_rows.append(['* Not all games visible: change select arg to see all *'])  # noqa: E501
-
-    # print all game rows together in one table
-    print(tabulate.tabulate(
-        final_rows,
-        tablefmt='plain',
-        stralign='center'
-    ))
 
 
 def _select_games(select, games):
@@ -101,37 +103,49 @@ def _game_rows(game_details):
     bases = bases_table(game_details)
     count = count_table(game_details)
 
-    # arrange tables into rows based on game status
-    rows = []
-    if _game_pending(game_details['_status']):
-        rows = [
-            summary,
-            probable_pitchers,
-            box_score,
-            broadcast
-        ]
+    result = []
+    if _game_finished(game_details['_status']):
+        top = Table.grid(expand=True)
+        top.add_column(ratio=25)
+        top.add_column(ratio=50)
+        top.add_column(ratio=25)
+        top.add_row(None, summary, None)
+        top.add_row(
+            Align.right(labels),
+            Align.center(innings),
+            Align.left(totals)
+        )
+        result.append(top)
+        result.append(box_score)
     elif _game_live(game_details['_status']):
-        rows = [
-            _ghost_grid([
-                [bases, summary, count],
-                [labels, innings, totals]
-            ]),
-            box_score,
-            broadcast
-        ]
-    elif _game_finished(game_details['_status']):
-        rows = [
-            _ghost_grid([
-                ['', summary, ''],
-                [labels, innings, totals]
-            ]),
-            box_score
-        ]
+        top = Table.grid(expand=True)
+        top.add_column(ratio=25)
+        top.add_column(ratio=50)
+        top.add_column(ratio=25)
+        top.add_row(
+            Align.right(bases),
+            Align.center(summary),
+            Align.left(count)
+        )
+        top.add_row(
+            Align.right(labels),
+            Align.center(innings),
+            Align.left(totals)
+        )
+        result.append(top)
+        result.append(box_score)
+        result.append(broadcast)
+    elif _game_pending(game_details['_status']):
+        summary.expand = False
+        result.append(summary)
+        result.append(probable_pitchers)
+        result.append(box_score)
+        result.append(broadcast)
     else:
         print(f"{game_details['_status']} is unexpected game status")
         exit()
 
-    return rows
+    return result
 
 
 def summary_table(game_details, table_format='simple'):
@@ -158,14 +172,14 @@ def summary_table(game_details, table_format='simple'):
     format_time = f"{game_time['time']} {game_time['ampm']}"  # local time
     format_venue = f"{venue['name']} : {venue['location']['city']}, {venue['location']['stateAbbrev']}"   # noqa:E501
     format_weather = f"{weather['temp']}°F {weather['condition']} : Wind {weather['wind']}" if 'temp' in weather else '-'  # noqa:E501
-    return tabulate.tabulate([
-            [f'{format_team(away_team)} @ {format_team(home_team)}'],
-            [f'{format_time} {format_venue}'],
-            [format_weather],
-            [game_status]
-        ],
-        tablefmt=table_format
-    )
+
+    table = Table(box=box.HORIZONTALS, show_header=False, expand=True)
+    table.add_column(justify='center')
+    table.add_row(f'{format_team(away_team)} @ {format_team(home_team)}')
+    table.add_row(f'{format_time} {format_venue}')
+    table.add_row(format_weather)
+    table.add_row(game_status)
+    return table
 
 
 def broadcast_table(game_details, table_format='simple'):
@@ -184,16 +198,14 @@ def broadcast_table(game_details, table_format='simple'):
         )
         return f'{medium.upper()}: {filtered}' if filtered else None
 
-    broadcast_rows = []
     broadcast_mediums = ['tv', 'fm', 'am']
+    table = Table(box=box.HORIZONTALS, show_header=False)
+    table.add_column(justify='center')
     for medium in broadcast_mediums:
         line = format_broadcast(medium)
         if line:
-            broadcast_rows.append([line])
-    return tabulate.tabulate(
-        broadcast_rows,
-        tablefmt=table_format
-    )
+            table.add_row(line)
+    return table
 
 
 def probable_pitchers_table(game_details, table_format='fancy_grid'):
@@ -213,31 +225,24 @@ def probable_pitchers_table(game_details, table_format='fancy_grid'):
             return [
                 team_name,
                 pitcher['person']['fullName'],
-                stats['gamesPlayed'],
-                stats['inningsPitched'],
-                stats['wins'],
-                stats['losses'],
-                stats['saves'],
-                stats['era'],
-                stats['strikeOuts'],
-                stats['baseOnBalls']
+                str(stats['gamesPlayed']),
+                str(stats['inningsPitched']),
+                str(stats['wins']),
+                str(stats['losses']),
+                str(stats['saves']),
+                str(stats['era']),
+                str(stats['strikeOuts']),
+                str(stats['baseOnBalls'])
             ]
         else:
             return [team_name] + [''] * 9
-    return tabulate.tabulate(
-        [
-            format_pitcher('away'),
-            format_pitcher('home')
-        ],
-        headers=[
-            '',
-            'Probable Pitchers',
-            'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB'
-        ],
-        tablefmt=table_format,
-        numalign='center',
-        floatfmt=('', '', '', '.1f', '', '', '', '.2f', '', '')
-    )
+
+    table = Table(expand=True, show_lines=True)
+    for x in ['', 'Probable Pitchers', 'GP', 'IP', 'W', 'L', 'S', 'ERA', 'SO', 'BB']:  # noqa:E501
+        table.add_column(x)
+    table.add_row(*format_pitcher('away'))
+    table.add_row(*format_pitcher('home'))
+    return table
 
 
 def box_score_table(game_details, allow_empty=False):
@@ -259,21 +264,19 @@ def box_score_table(game_details, allow_empty=False):
     home_lineup = lineup('home', box_score)
     if not allow_empty and not away_lineup and not home_lineup:
         return ''
-    return tabulate.tabulate(
-        [
-            [
-                box_score_batting_table(away_lineup, batter_id),
-                box_score_batting_table(home_lineup, batter_id)
-            ],
-            [
-                box_score_pitching_table('away', live_data),
-                box_score_pitching_table('home', live_data)
-            ]
-        ],
-        headers=[away_team, home_team],
-        stralign='center',
-        tablefmt='fancy_grid'
+
+    table = Table(show_lines=True)
+    table.add_column(home_team, justify='center')
+    table.add_column(away_team, justify='center')
+    table.add_row(
+        Align.center(box_score_batting_table(away_lineup, batter_id)),
+        Align.center(box_score_batting_table(home_lineup, batter_id))
     )
+    table.add_row(
+        Align.center(box_score_pitching_table('away', live_data)),
+        Align.center(box_score_pitching_table('home', live_data))
+    )
+    return table
 
 
 def box_score_batting_table(lineup, current_batter, table_format='simple'):
@@ -281,31 +284,29 @@ def box_score_batting_table(lineup, current_batter, table_format='simple'):
     def display_order(batter):
         batting_order = int(batter['battingOrder'])
         if not batting_order % 100:
-            return int(batting_order / 100)
+            return str(int(batting_order / 100))
         return ''
 
     def player_name(batter, current_batter):
         modifier = '*' if batter['id'] == current_batter else ' '
         return f"{modifier} {batter['fullName']}"
 
-    return tabulate.tabulate(
-        [
-            [
-                display_order(x),
-                x['position']['abbreviation'],
-                player_name(x['person'], current_batter),
-                x['stats']['batting']['atBats'],
-                x['stats']['batting']['hits'],
-                x['stats']['batting']['runs'],
-                x['stats']['batting']['rbi'],
-                x['stats']['batting']['baseOnBalls'],
-                x['stats']['batting']['strikeOuts']
-            ]
-            for x in lineup
-        ],
-        headers=['#', 'POS', 'Name', 'AB', 'H', 'R', 'RBI', 'BB', 'SO'],
-        tablefmt=table_format
-    )
+    table = Table(box=box.SIMPLE)
+    for x in ['#', 'POS', 'Name', 'AB', 'H', 'R', 'RBI', 'BB', 'SO']:
+        table.add_column(x)
+    for x in lineup:
+        table.add_row(
+            display_order(x),
+            x['position']['abbreviation'],
+            player_name(x['person'], current_batter),
+            str(x['stats']['batting']['atBats']),
+            str(x['stats']['batting']['hits']),
+            str(x['stats']['batting']['runs']),
+            str(x['stats']['batting']['rbi']),
+            str(x['stats']['batting']['baseOnBalls']),
+            str(x['stats']['batting']['strikeOuts'])
+        )
+    return table
 
 
 def box_score_pitching_table(team, live_data, table_format='simple'):
@@ -325,23 +326,21 @@ def box_score_pitching_table(team, live_data, table_format='simple'):
         live_data['boxscore']['teams'][team]['players'][f'ID{x}']
         for x in pitcher_ids
     ]
-    return tabulate.tabulate(
-        [
-            [
-                x['person']['fullName'],
-                x['stats']['pitching']['inningsPitched'],
-                x['stats']['pitching']['hits'],
-                x['stats']['pitching']['runs'],
-                x['stats']['pitching']['earnedRuns'],
-                x['stats']['pitching']['baseOnBalls'],
-                x['stats']['pitching']['strikeOuts']
-            ]
-            for x in pitchers
-        ],
-        headers=['Name', 'IP', 'H', 'R', 'ER', 'BB', 'SO'],
-        tablefmt=table_format,
-        floatfmt='.1f'
-    )
+
+    table = Table(box=box.SIMPLE)
+    for x in ['Name', 'IP', 'H', 'R', 'ER', 'BB', 'SO']:
+        table.add_column(x)
+    for x in pitchers:
+        table.add_row(
+            x['person']['fullName'],
+            str(x['stats']['pitching']['inningsPitched']),
+            str(x['stats']['pitching']['hits']),
+            str(x['stats']['pitching']['runs']),
+            str(x['stats']['pitching']['earnedRuns']),
+            str(x['stats']['pitching']['baseOnBalls']),
+            str(x['stats']['pitching']['strikeOuts'])
+        )
+    return table
 
 
 def line_score_tables(game_details, table_format='fancy_grid'):
@@ -377,6 +376,10 @@ def line_score_tables(game_details, table_format='fancy_grid'):
             else:
                 home_inning_scores.append(inning['home'].get('runs', 0))
 
+    # cast as strings for rich.Table
+    away_inning_scores = [str(x) for x in away_inning_scores]
+    home_inning_scores = [str(x) for x in home_inning_scores]
+
     # fill in gaps if they exist
     scheduled_len = int(line_score['scheduledInnings'])
     placeholders = [placeholder] * (scheduled_len - len(inning_scores))
@@ -393,33 +396,29 @@ def line_score_tables(game_details, table_format='fancy_grid'):
             away_team = f'{l_marker} {away_team}'
             home_team = f'{w_marker} {home_team}'
 
-    labels = tabulate.tabulate(
-        [
-            [away_team],
-            [home_team]
-        ],
-        headers=[''],
-        tablefmt=table_format,
-        stralign='left'
+    labels = Table(show_lines=True, expand=False)
+    labels.add_column(no_wrap=True)
+    labels.add_row(away_team)
+    labels.add_row(home_team)
+
+    innings = Table(show_lines=True, expand=True)
+    for x in range(1, len(home_inning_scores) + 1):
+        innings.add_column(str(x), justify='center')
+    innings.add_row(*away_inning_scores)
+    innings.add_row(*home_inning_scores)
+
+    totals = Table(show_lines=True)
+    for x in ['R', 'H', 'E']:
+        totals.add_column(x, justify='center')
+    totals.add_row(
+        str(away_team_runs),
+        str(away_team_hits),
+        str(away_team_errors)
     )
-    innings = tabulate.tabulate(
-        [
-            away_inning_scores,
-            home_inning_scores
-        ],
-        headers=range(1, len(home_inning_scores) + 1),
-        tablefmt=table_format,
-        numalign='center',
-        stralign='center'
-    )
-    totals = tabulate.tabulate(
-        [
-            [away_team_runs, away_team_hits, away_team_errors],
-            [home_team_runs, home_team_hits, home_team_errors],
-        ],
-        headers=['R', 'H', 'E'],
-        tablefmt=table_format,
-        numalign='right'
+    totals.add_row(
+        str(home_team_runs),
+        str(home_team_hits),
+        str(home_team_errors)
     )
     return (labels, innings, totals)
 
@@ -431,13 +430,27 @@ def bases_table(game_details):
     first = ON if 'first' in offense else OFF
     second = ON if 'second' in offense else OFF
     third = ON if 'third' in offense else OFF
-    return _ghost_grid(
-        [
-            [' ', second, ' '],
-            [third, '-', first],
-        ],
-        border=False
+
+    pad = 1
+    bases = Table.grid(expand=True, padding=(pad, pad, pad, pad))
+
+    bases = Table(
+        box=box.HORIZONTALS,
+        expand=False,
+        show_header=False,
+        show_footer=False,
+        show_edge=False
     )
+    bases.add_column(justify='center')
+    bases.add_column(justify='center')
+    bases.add_column(justify='center')
+    bases.add_column(justify='center')
+    bases.add_row()
+    bases.add_row(' ', second, ' ')
+    bases.add_row()
+    bases.add_row(third, OFF, first)
+    bases.add_row()
+    return bases
 
 
 def count_table(game_details):
@@ -455,55 +468,20 @@ def count_table(game_details):
     outs = current_count.get('outs', 0)
     strikes = current_count.get('strikes', 0) if outs != 3 else 0
     balls = current_count.get('balls', 0) if outs != 3 else 0
-    return _ghost_grid(
-        [
-            format_checks('B', balls, 4),
-            format_checks('S', strikes, 3),
-            format_checks('O', outs, 3)
-        ],
-        headers=[],
-        stralign='left',
-        border=False
+
+    table = Table(
+        box=box.HORIZONTALS,
+        expand=False,
+        show_header=False,
+        show_footer=False,
+        show_edge=False
     )
-
-
-def _ghost_grid(
-        table, headers=[], stralign='center', numalign='center', border=False):
-    """Fix for nested tables when using "plain" format.
-
-    Escape table delimiter characters, format using "grid" format
-    then replace esaped chacaters to get invisible grid layout.
-    """
-    escapes = [
-        ('-', '‡'),
-        ('+', '†'),
-        ('|', 'ƒ')
-    ]
-    escaped_table = []
-    for row in table:
-        escaped_row = []
-        for cell in row:
-            for escape in escapes:
-                cell = cell.replace(escape[0], escape[1])
-            escaped_row.append(cell)
-        escaped_table.append(escaped_row)
-    grid_table = tabulate.tabulate(
-        escaped_table,
-        numalign=numalign,
-        stralign=stralign,
-        tablefmt='grid'
-    )
-    for escape in escapes:
-        grid_table = grid_table.replace(escape[0], ' ')
-        grid_table = grid_table.replace(escape[1], escape[0])
-    if border:
-        return tabulate.tabulate(
-            [
-                [grid_table]
-            ],
-            tablefmt='grid'
-        )
-    return grid_table
+    table.add_row()
+    table.add_row(*format_checks('B', balls, 4))
+    table.add_row(*format_checks('S', strikes, 3))
+    table.add_row(*format_checks('O', outs, 3))
+    table.add_row()
+    return table
 
 
 def _game_pending(status):
