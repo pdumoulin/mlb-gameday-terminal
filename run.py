@@ -625,6 +625,11 @@ def _load_args():
         help='Load raw game data with input name instead of querying')
     args = parser.parse_args()
 
+    # handle user not submitting command
+    if not args.command:
+        parser.print_help()
+        exit()
+
     # convert date arg to formatted string
     if args.date:
         if args.date in quick_dates.keys():
@@ -634,11 +639,6 @@ def _load_args():
                 args.date = datetime.datetime.strptime(args.date, date_format)
             except ValueError:
                 exit(f'{args.date} not in format {date_format} or {quick_date_opts}')  # noqa:E501
-
-    # handle user not submitting command
-    if not args.command:
-        parser.print_help()
-        exit()
 
     return args
 
