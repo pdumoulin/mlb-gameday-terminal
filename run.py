@@ -579,6 +579,15 @@ def _delete_game_data(name):
 def _load_args():
     parser = argparse.ArgumentParser()
 
+    # config for shorthand date options
+    date_format = '%Y-%m-%d'
+    quick_dates = {
+        'today': datetime.date.today().strftime(date_format),
+        'tomorrow': (datetime.datetime.today() - datetime.timedelta(days=-1)).strftime(date_format),  # noqa:E501
+        'yesterday': (datetime.datetime.today() - datetime.timedelta(days=1)).strftime(date_format)  # noqa:E501
+    }
+    quick_date_opts = '{' + ','.join(quick_dates.keys()) + '}'
+
     subparsers = parser.add_subparsers(dest='command')
     parser_query = subparsers.add_parser(QUERY_CMD)
     parser_save = subparsers.add_parser(SAVE_CMD)
@@ -591,8 +600,8 @@ def _load_args():
         each.add_argument(
             '--date',
             required=False,
-            default=datetime.date.today(),
-            help='YYYY-MM-DD date to find game for, default today')
+            default='today',
+            help=f'YYYY-MM-DD specific date or one of {quick_date_opts}')
     for each in [parser_query, parser_load]:
         each.add_argument(
             '--select',
@@ -615,9 +624,22 @@ def _load_args():
         required=False,
         help='Load raw game data with input name instead of querying')
     args = parser.parse_args()
+
+    # convert date arg to formatted string
+    if args.date:
+        if args.date in quick_dates.keys():
+            args.date = quick_dates[args.date]
+        else:
+            try:
+                args.date = datetime.datetime.strptime(args.date, date_format)
+            except ValueError:
+                exit(f'{args.date} not in format {date_format} or {quick_date_opts}')  # noqa:E501
+
+    # handle user not submitting command
     if not args.command:
         parser.print_help()
         exit()
+
     return args
 
 
