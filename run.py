@@ -34,6 +34,10 @@ SELECT_FIRST = 'first'
 SELECT_SECOND = 'second'
 SELECT_SMART = 'smart'
 
+QUERY_CMD = 'query'
+LOAD_CMD = 'load'
+SAVE_CMD = 'save'
+
 
 def main():
     """Overall flow control."""
@@ -41,7 +45,7 @@ def main():
     command = args.command
 
     # parse commands and load games
-    if command == 'load':
+    if command == LOAD_CMD:
         games = _load_game_data(args.name)
     else:
         team = _find_team(args.team)
@@ -576,9 +580,9 @@ def _load_args():
     parser = argparse.ArgumentParser()
 
     subparsers = parser.add_subparsers(dest='command')
-    parser_query = subparsers.add_parser('query')
-    parser_save = subparsers.add_parser('save')
-    parser_load = subparsers.add_parser('load')
+    parser_query = subparsers.add_parser(QUERY_CMD)
+    parser_save = subparsers.add_parser(SAVE_CMD)
+    parser_load = subparsers.add_parser(LOAD_CMD)
     for each in [parser_save, parser_query]:
         each.add_argument(
             '--team',
@@ -611,6 +615,9 @@ def _load_args():
         required=False,
         help='Load raw game data with input name instead of querying')
     args = parser.parse_args()
+    if not args.command:
+        parser.print_help()
+        exit()
     return args
 
 
