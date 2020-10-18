@@ -636,7 +636,7 @@ def _load_args():
             args.date = quick_dates[args.date]
         else:
             try:
-                args.date = datetime.datetime.strptime(args.date, date_format)
+                datetime.datetime.strptime(args.date, date_format)
             except ValueError:
                 exit(f'{args.date} not in format {date_format} or {quick_date_opts}')  # noqa:E501
 
