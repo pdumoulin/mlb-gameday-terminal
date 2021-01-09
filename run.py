@@ -631,7 +631,7 @@ def _load_args():
         exit()
 
     # convert date arg to formatted string
-    if args.date:
+    if 'date' in args:
         if args.date in quick_dates.keys():
             args.date = quick_dates[args.date]
         else:
