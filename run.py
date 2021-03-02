@@ -270,8 +270,8 @@ def box_score_table(game_details, allow_empty=False):
         return ''
 
     table = Table(show_lines=True)
-    table.add_column(home_team, justify='center')
     table.add_column(away_team, justify='center')
+    table.add_column(home_team, justify='center')
     table.add_row(
         Align.center(box_score_batting_table(away_lineup, batter_id)),
         Align.center(box_score_batting_table(home_lineup, batter_id))
