@@ -543,7 +543,7 @@ def _find_game_details(game):
     details['_status'] = details['gameData']['status']['detailedState'].lower()  # noqa:E501
     details['broadcasts'] = [
         x
-        for x in game['broadcasts']
+        for x in game.get('broadcasts', [])
         if x['language'].lower() in ['en']
     ]
     return details
