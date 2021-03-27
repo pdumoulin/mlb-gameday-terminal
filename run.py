@@ -506,16 +506,32 @@ def _check_status(status, target_status):
 
 
 def _find_team(term):
-    teams = [
+    # match on abbr first
+    abbr_teams = [
         x for x in TEAMS
-        if term in x['name'].lower() or term in x['abbr'].lower()
+        if term in x['abbr'].lower()
     ]
-    if not teams:
-        exit(f'Could not find team using search term "{term}"')
-    elif len(teams) > 1:
-        matches = [f"{x['name']} ({x['abbr']})" for x in teams]
-        exit(f'Matched too many teams with search term "{term}" => {matches}')  # noqa:E501
-    return teams[0]
+    if len(abbr_teams) == 1:
+        return abbr_teams[0]
+
+    # match on name second
+    name_teams = [
+        x for x in TEAMS
+        if term in x['name'].lower()
+    ]
+    if len(name_teams) == 1:
+        return name_teams[0]
+
+    # handle too many or too few matches
+    all_matches = abbr_teams + name_teams
+    if not all_matches:
+        print(f'Could not find team using search term "{term}"')
+    else:
+        print(f'Matched too many teams with search term "{term}"')
+        for match in all_matches:
+            print(match)
+        print("Try searching using team's unique abbreviation!")
+    exit(1)
 
 
 def _find_games(day, team_id):
