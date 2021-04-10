@@ -79,6 +79,15 @@ function main {
     TEAM=$1
     REFRESH=$2
 
+    # verify watch is installed
+    if [ -n "$REFRESH" ]; then
+        watch -v
+        if [ $? != 0 ]; then
+            echo 'watch command is not installed, it is required for automatic refresh!'
+            exit 2
+        fi
+    fi
+
     # make sure team is set
     if [ -z "$TEAM" ]; then
         echo 'Team must be set as $1'

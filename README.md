@@ -11,6 +11,8 @@ run.sh nym
 ```
 run.sh nym 60
 ```
+:warning: [watch](https://en.wikipedia.org/wiki/Watch_(command)) command must be installed for automatic refresh
+
 :information_source: You can search for a team by any term that partially matches exactly one team by either name, location, or abbreviation.
 ## Install Requirements
 **If you ran quickstart script, this was done already.**
@@ -43,6 +45,8 @@ $ python run.py query --team nym --date 2019-09-27
 ```
 $ watch -t -d -n 60 "python run.py query --team nym"
 ```
+:warning: [watch](https://en.wikipedia.org/wiki/Watch_(command)) command is not automatically installed
+
 ## Update Teams List
 By default teams with the names, abbreviations, and IDs are stored in `teams.py`. In the unlikely event you need to update that list, run the following...
 ```
