@@ -24,7 +24,7 @@ PICKLE_FILE = 'games.p'
 # groups of game status to determine output format
 GAME_STATUSES = {
     'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start'],  # noqa:E501
-    'live': ['in progress', 'delayed', 'challenge'],
+    'live': ['in progress', 'delayed', 'challenge', 'umpire review'],
     'finished': ['final', 'game over', 'completed', 'completed early']
 }
 
