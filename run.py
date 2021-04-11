@@ -25,7 +25,7 @@ PICKLE_FILE = 'games.p'
 GAME_STATUSES = {
     'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start'],  # noqa:E501
     'live': ['in progress', 'delayed', 'challenge', 'umpire review'],
-    'finished': ['final', 'game over', 'completed', 'completed early']
+    'finished': ['final', 'game over', 'completed', 'completed early', 'suspended']  # noqa:E501
 }
 
 # options to filter games list
