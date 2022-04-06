@@ -23,7 +23,7 @@ PICKLE_FILE = 'games.p'
 
 # groups of game status to determine output format
 GAME_STATUSES = {
-    'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start'],  # noqa:E501
+    'pending': ['scheduled', 'pre-game', 'warmup', 'postponed', 'delayed start', 'cancelled'],  # noqa:E501
     'live': ['in progress', 'delayed', 'challenge', 'umpire review', 'manager challenge'],  # noqa:E501
     'finished': ['final', 'game over', 'completed', 'completed early', 'suspended']  # noqa:E501
 }
@@ -54,9 +54,15 @@ def main():
             exit(f'Unable to find game on {args.date} for team {args.team}')
         if command == 'save':
             _save_game_data(args.name, games)
+            exit(f'Saved game data as {args.name}')
 
     # handle double headers
     filtered_games = _select_games(args.select, games)
+
+    # verify game status is expected
+    for game in filtered_games:
+        if not _valid_status(game['_status']):
+            exit(f"Invalid status {game['_status']}")
 
     # generate rows of data from each game
     final_rows = []
@@ -503,6 +509,14 @@ def _game_finished(status):
 def _check_status(status, target_status):
     status = status.split(':')[0]
     return status in GAME_STATUSES[target_status]
+
+
+def _valid_status(status):
+    status = status.split(':')[0]
+    for _, statuses in GAME_STATUSES.items():
+        if status in statuses:
+            return True
+    return False
 
 
 def _find_team(term):
