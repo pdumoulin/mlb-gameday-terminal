@@ -520,6 +520,8 @@ def _valid_status(status):
 
 
 def _find_team(term):
+    term = term.lower()
+
     # match on abbr first
     abbr_teams = [
         x for x in TEAMS
