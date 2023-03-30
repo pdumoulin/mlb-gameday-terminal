@@ -11,7 +11,7 @@ function cleanup {
         deactivate > /dev/null 2>&1
     fi
     cd - > /dev/null
-    exit 1
+    exit $1
 }
 
 # create venv if does not exist
