@@ -5,11 +5,11 @@
 ## Quickstart
 1. Get live data
 ```
-run.sh nym
+./run.sh nym
 ```
 2. Watch live data, updated every minute
 ```
-run.sh nym 60
+./run.sh nym 60
 ```
 :warning: [watch](https://en.wikipedia.org/wiki/Watch_(command)) command must be installed for automatic refresh
 

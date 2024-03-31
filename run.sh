@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -i
 
 # startup and global vars
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
@@ -86,6 +86,17 @@ function main {
             echo 'watch command is not installed, it is required for automatic refresh!'
             exit 2
         fi
+    fi
+
+    # handle python cmd set in diff location
+    command -v python
+    if [ $? != 0 ]; then
+        alias python='python3'
+    fi
+    command -v python
+    if [ $? != 0 ]; then
+        echo 'unable to find python installed'
+        exit 3
     fi
 
     # make sure team is set
