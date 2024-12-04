@@ -1,0 +1,13 @@
+---
+services:
+
+  app:
+    platform: 'linux/amd64'
+    build:
+      context: .
+    environment:
+      - WATCH_MLB
+    volumes:
+      - ./games.p:/var/app/games.p
+    stdin_open: true
+    tty: true
